@@ -2,7 +2,6 @@ import networkx as nx
 from networkx.utils import powerlaw_sequence
 import scipy as sp
 import numpy as np
-import matplotlib.pyplot as plt
 
 def generateNetwork(numberOfNodes, powerLawAlpha):
     ## use a networkx function to create a degree sequence that follows a power law
@@ -33,11 +32,18 @@ def generateConnectedPowerLawNetwork(numberOfNodes, powerLawAlpha):
         Graph = generateNetwork(numberOfNodes, powerLawAlpha)
         
     nx.write_gexf(Graph, 'connectedGraph.gexf')
+    return Graph
     
-numberOfNodes = 500
+def calculateDegreeAssortativity(Graph):
+    return nx.degree_assortativity_coefficient(Graph)
+    
+    
+numberOfNodes = 250
 powerLawAlpha = 2
-generateConnectedPowerLawNetwork(numberOfNodes, powerLawAlpha)
-    
+Graph = generateConnectedPowerLawNetwork(numberOfNodes, powerLawAlpha)
+degreeAssortativity = calculateDegreeAssortativity(Graph)
+print degreeAssortativity
+
 
 
 
