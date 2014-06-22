@@ -3,7 +3,14 @@ from networkx.utils import powerlaw_sequence
 import scipy as sp
 import numpy as np
 
-def generateNetwork(numberOfNodes, powerLawAlpha):
+numberOfNodes = 100
+powerLawAlpha = 2
+Graph = nx.Graph()
+timestep = 0
+
+
+def generateNetwork():
+    global Graph
     ## use a networkx function to create a degree sequence that follows a power law
     degreeSequence=nx.utils.create_degree_sequence(numberOfNodes,powerlaw_sequence)
 
@@ -26,14 +33,15 @@ def generateNetwork(numberOfNodes, powerLawAlpha):
    
     return Graph
   
-def generateConnectedPowerLawNetwork(numberOfNodes, powerLawAlpha):
+def generateConnectedPowerLawNetwork():
     ## Use our generateNetwork function to create a sparse graph w/ power law capacities 
-    Graph = generateNetwork(numberOfNodes, powerLawAlpha)
+    global Graph
+    Graph = generateNetwork()
     
     ## there is no guarantee that the network created above is completely connected
     ## therefore, we'll keep re-making the graph until we get a fully connected one
     while nx.is_connected(Graph) != True:
-        Graph = generateNetwork(numberOfNodes, powerLawAlpha)
+        Graph = generateNetwork()
         
     nx.write_gexf(Graph, 'connectedGraph.gexf')
     return Graph
@@ -41,7 +49,7 @@ def generateConnectedPowerLawNetwork(numberOfNodes, powerLawAlpha):
 def calculateDegreeAssortativity(Graph):
     return nx.degree_assortativity_coefficient(Graph)
     
-def checkSolvency(Graph, timestep):
+def checkSolvency():
     ## loop through all nodes
     for nodeID in range(0, numberOfNodes-1):
         ## record capacity
@@ -58,7 +66,7 @@ def checkSolvency(Graph, timestep):
             neighbor = Graph.node[neighborID]
             ## if that neighbor's status is 1, increment the solventNeighbors variable by 1
             if neighbor['status'] == 1: solventNeighbors = solventNeighbors + 1
-        
+            print solventNeighbors
         ## perform solvency calculation    
         if capacity < (cumulativeShock / solventNeighbors): 
             ## if a bank is insolvent, change its status to 0
@@ -66,17 +74,6 @@ def checkSolvency(Graph, timestep):
             ## and record the current timestep
             Graph.node[nodeID]['insolventTimestep'] = timestep
         
-
-        
-        
-        
-     
-            
-        
-        
-    
-numberOfNodes = 250
-powerLawAlpha = 2
-Graph = generateConnectedPowerLawNetwork(numberOfNodes, powerLawAlpha)
+Graph = generateConnectedPowerLawNetwork()
 degreeAssortativity = calculateDegreeAssortativity(Graph)
 print degreeAssortativity
