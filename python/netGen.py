@@ -42,7 +42,7 @@ class Bank:
 def generateNetwork():
     global Graph
     ## use a networkx function to create a degree sequence that follows a power law
-    degreeSequence=nx.utils.create_degree_sequence(numberOfNodes,powerlaw_sequence)
+    degreeSequence=nx.utils.create_degree_sequence(numberOfNodes,powerlaw_sequence, 100)
     ## use aforementioned degree sequence to configure a pseudograph that contains self-loops & hyper-edges
     pseudoGraph=nx.configuration_model(degreeSequence)
     ## remove hyper (parallel) edges
