@@ -2,7 +2,6 @@ import networkx as nx
 from networkx.utils import powerlaw_sequence
 import scipy as sp
 import numpy as np
-import Bank 
 
 numberOfNodes = 100
 powerLawAlpha = 2
@@ -19,7 +18,7 @@ class Bank:
         self.status = status
         
     def checkSolvency(self):
-        solventNeighbors = 0;
+        solventNeighbors = 0
         ## acquire all neighbors for the current nodeID
         neighbors = Graph.neighbors(self.id)
         ## loop through all neighbors of current nodeID
@@ -86,9 +85,8 @@ def generateBanks():
              
 def calculateDegreeAssortativity():
     return nx.degree_assortativity_coefficient(Graph)
-       
-         
+
 generateConnectedPowerLawNetwork()
 generateBanks()
 degreeAssortativity = calculateDegreeAssortativity()
-print degreeAssortativity
+print "assortativity =", degreeAssortativity
