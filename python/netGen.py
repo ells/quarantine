@@ -16,7 +16,7 @@ class Bank:
         self.cumulativeShock = cumulativeShock
         self.solventNeighbors = solventNeighbors
         self.status = status
-        
+
     def checkSolvency(self):
         solventNeighbors = 0
         ## acquire all neighbors for the current nodeID
@@ -34,8 +34,7 @@ class Bank:
             Graph.node[self.id]['status'] = 0
             ## and record the current timestep
             Graph.node[self.id]['insolventTimestep'] = timestep
-            
-        
+
 
 def generateNetwork():
     global Graph
@@ -50,7 +49,7 @@ def generateNetwork():
     Graph.remove_edges_from(Graph.selfloop_edges())
 
     ## loop through all nodes and set capacity equal to degree
-    for i in range(0,len(Graph.node)-1):
+    for i in range(0,len(Graph.node)):
         Graph.node[i]['capacity'] = Graph.degree(i)
         ## right now capacity = degree
         Graph.node[i]['cumulativeShock'] = 0
@@ -72,7 +71,7 @@ def generateConnectedPowerLawNetwork():
     
 def generateBanks():
     global banks
-    for nodeID in range(0, numberOfNodes-1):
+    for nodeID in range(0, numberOfNodes):
         ## for each node, record properties
         bankID = nodeID
         capacity = Graph.node[nodeID]['capacity']
@@ -86,7 +85,13 @@ def generateBanks():
 def calculateDegreeAssortativity():
     return nx.degree_assortativity_coefficient(Graph)
 
+def checkGlobalSolvency():
+    for nodeID in range(0, numberOfNodes):
+        banks[nodeID].checkSolvency()
+
 generateConnectedPowerLawNetwork()
 generateBanks()
 degreeAssortativity = calculateDegreeAssortativity()
 print "assortativity =", degreeAssortativity
+checkGlobalSolvency()
+
