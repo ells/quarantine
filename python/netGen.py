@@ -99,21 +99,34 @@ def generateMultipleNetworks():
     global ListsOfBanks
     global ListsOfNetworks
 
+    ## while we still need to find more networks...
     while len(ListsOfBanks) < targetReplicates:
+        ## generate a power law network that is connected
         generateConnectedPowerLawNetwork()
+        ## make a bank list to match nodes in the power law network we just made
         generateBanks()
+        ## globally set the number of solvent neighbors via the fxn specific to the Bank class
         checkGlobalSolvency()
-        deltaAssort = np.abs(np.abs(calculateDegreeAssortativity()) - np.abs(targetAssort))
+        assortativity = calculateDegreeAssortativity()
+        ## measure assortativity of the network and compare to target assortativity
+        deltaAssort = np.abs(np.abs(assortativity) - np.abs(targetAssort))
 
+        ## as long as the difference between assortativity and the target assortativity is smaller than a threshold
         if (deltaAssort < assortThresh):
-            print "assortativity =", calculateDegreeAssortativity()
+            ## print the assortativity
+            print "assortativity =", assortativity
+            ## add the list of banks to a global list of banks
             ListsOfBanks.append(banks)
+            ## and add the network to a global list of networks
             ListsOfNetworks.append(Graph)
-
+    ## here we wipe out the existing banks list to get ready for the next bank
     banks = []
+    ## and to be safe, we wipe out the existing Graph to make room for the next
     Graph = nx.Graph()
 
-generateMultipleNetworks()
 
+## here is where the code actually executes
+generateMultipleNetworks()
+## once the banks are made, we start the simulation
 sim.run(25, ListsOfBanks[0], ListsOfNetworks[0])
 

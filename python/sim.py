@@ -1,5 +1,6 @@
 from random import randint
 import networkx as nx
+
 totalShockSize = 0
 banks = []
 banksToShock = []
@@ -53,7 +54,7 @@ def shockBanks():
         bankNode = bankGraph.node[bankID]
 
         ## for now, we've got to make the change to cumulative shock in two places
-        ## this will be refactored once I have a sit-down with either Andy or Anna.
+        ## this will be refactored once I have a sit-down with Andy.
         ## As I'm sure that we should be able to set both simultaneously.
         ## To be clear, this is both messy AND dangerous so it's gotta be fixed ASAP.
 
