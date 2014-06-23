@@ -1,8 +1,11 @@
 import networkx as nx
 from networkx.utils import powerlaw_sequence
+import numpy as np
 
 numberOfNodes = 100
 powerLawAlpha = 2
+targetAssort = -0.2
+assortThresh = 0.01
 Graph = nx.Graph()
 banks = []
 ListsOfBanks = []
@@ -61,11 +64,13 @@ def generateConnectedPowerLawNetwork():
     ## Use our generateNetwork function to create a sparse graph w/ power law capacities 
     global Graph
     Graph = generateNetwork()
+
     ## there is no guarantee that the network created above is completely connected
     ## therefore, we'll keep re-making the graph until we get a fully connected one
     while nx.is_connected(Graph) != True:
         Graph = generateNetwork()
-    
+
+
 def generateBanks():
     global banks
     for nodeID in range(0, numberOfNodes):
@@ -92,13 +97,16 @@ def generateMultipleNetworks():
     global ListsOfBanks
     global ListsOfNetworks
 
-    for i in range(0,100):
+    while len(ListsOfBanks) < 100:
         generateConnectedPowerLawNetwork()
         generateBanks()
         checkGlobalSolvency()
-        print "assortativity =", calculateDegreeAssortativity()
-        ListsOfBanks.append(banks)
-        ListsOfNetworks.append(Graph)
+        deltaAssort = np.abs(np.abs(calculateDegreeAssortativity()) - np.abs(targetAssort))
+
+        if (deltaAssort < assortThresh):
+            print "assortativity =", calculateDegreeAssortativity()
+            ListsOfBanks.append(banks)
+            ListsOfNetworks.append(Graph)
 
     banks = []
     Graph = nx.Graph()
