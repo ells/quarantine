@@ -1,12 +1,12 @@
 import networkx as nx
 from networkx.utils import powerlaw_sequence
-import scipy as sp
-import numpy as np
 
 numberOfNodes = 100
 powerLawAlpha = 2
 Graph = nx.Graph()
 banks = []
+ListsOfBanks = []
+ListsOfNetworks = []
 timestep = 0
 
 class Bank:
@@ -40,14 +40,12 @@ def generateNetwork():
     global Graph
     ## use a networkx function to create a degree sequence that follows a power law
     degreeSequence=nx.utils.create_degree_sequence(numberOfNodes,powerlaw_sequence)
-
     ## use aforementioned degree sequence to configure a pseudograph that contains self-loops & hyper-edges
     pseudoGraph=nx.configuration_model(degreeSequence)
     ## remove hyper (parallel) edges
     Graph = nx.Graph(pseudoGraph)
     ## remove self edges
     Graph.remove_edges_from(Graph.selfloop_edges())
-
     ## loop through all nodes and set capacity equal to degree
     for i in range(0,len(Graph.node)):
         Graph.node[i]['capacity'] = Graph.degree(i)
@@ -57,7 +55,6 @@ def generateNetwork():
         Graph.node[i]['status'] = 1
         ## here we set the timestep that the bank becomes insolvent to a big number
         Graph.node[i]['insolventTimestep'] = 100000000
-   
     return Graph
   
 def generateConnectedPowerLawNetwork():
@@ -89,9 +86,22 @@ def checkGlobalSolvency():
     for nodeID in range(0, numberOfNodes):
         banks[nodeID].checkSolvency()
 
-generateConnectedPowerLawNetwork()
-generateBanks()
-degreeAssortativity = calculateDegreeAssortativity()
-print "assortativity =", degreeAssortativity
-checkGlobalSolvency()
+def generateMultipleNetworks():
+    global banks
+    global Graph
+    global ListsOfBanks
+    global ListsOfNetworks
+
+    for i in range(0,100):
+        generateConnectedPowerLawNetwork()
+        generateBanks()
+        checkGlobalSolvency()
+        print "assortativity =", calculateDegreeAssortativity()
+        ListsOfBanks.append(banks)
+        ListsOfNetworks.append(Graph)
+
+    banks = []
+    Graph = nx.Graph()
+
+generateMultipleNetworks()
 
