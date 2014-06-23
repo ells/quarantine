@@ -5,6 +5,7 @@ import numpy as np
 numberOfNodes = 100
 powerLawAlpha = 2
 targetAssort = -0.2
+targetReplicates = 100
 assortThresh = 0.01
 Graph = nx.Graph()
 banks = []
@@ -97,7 +98,7 @@ def generateMultipleNetworks():
     global ListsOfBanks
     global ListsOfNetworks
 
-    while len(ListsOfBanks) < 100:
+    while len(ListsOfBanks) < targetReplicates:
         generateConnectedPowerLawNetwork()
         generateBanks()
         checkGlobalSolvency()
