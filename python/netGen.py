@@ -74,6 +74,7 @@ def generateConnectedPowerLawNetwork():
 
 def generateBanks():
     global banks
+    banks = []
     for nodeID in range(0, numberOfNodes):
         ## for each node, record properties
         bankID = nodeID
@@ -113,5 +114,6 @@ def generateMultipleNetworks():
     Graph = nx.Graph()
 
 generateMultipleNetworks()
-sim.run()
+
+sim.run(25, ListsOfBanks[0], ListsOfNetworks[0])
 
