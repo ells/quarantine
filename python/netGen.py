@@ -1,11 +1,12 @@
 import networkx as nx
 from networkx.utils import powerlaw_sequence
 import numpy as np
+import sim
 
 numberOfNodes = 100
 powerLawAlpha = 2
 targetAssort = -0.2
-targetReplicates = 100
+targetReplicates = 1
 assortThresh = 0.01
 Graph = nx.Graph()
 banks = []
@@ -71,7 +72,6 @@ def generateConnectedPowerLawNetwork():
     while nx.is_connected(Graph) != True:
         Graph = generateNetwork()
 
-
 def generateBanks():
     global banks
     for nodeID in range(0, numberOfNodes):
@@ -113,4 +113,5 @@ def generateMultipleNetworks():
     Graph = nx.Graph()
 
 generateMultipleNetworks()
+sim.run()
 
