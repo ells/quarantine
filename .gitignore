@@ -1,2 +1,7 @@
 
 .idea/*
+*.pyc
+
+*.pyc
+
+python/sim.pyc

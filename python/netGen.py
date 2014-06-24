@@ -5,6 +5,7 @@ import sim
 
 numberOfNodes = 100
 powerLawAlpha = 2
+shockSize = 25
 targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
@@ -15,14 +16,16 @@ ListsOfNetworks = []
 timestep = 0
 
 class Bank:
-    def __init__(self, id, capacity, cumulativeShock, solventNeighbors, status):
+    def __init__(self, id, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate):
         self.id = id
         self.capacity = capacity
         self.cumulativeShock = cumulativeShock
         self.solventNeighbors = solventNeighbors
         self.status = status
+        self.insolventTimestep = insolventTimestep
+        self.shockToPropagate = shockToPropagate
 
-    def checkSolvency(self):
+    def checkNeighborSolvency(self):
         solventNeighbors = 0
         ## acquire all neighbors for the current nodeID
         neighbors = Graph.neighbors(self.id)
@@ -30,15 +33,39 @@ class Bank:
         for neighborID in range(0, len(neighbors)):
             ## define the neighbor we're looking at
             neighbor = Graph.node[neighborID]
+            neighborBank = banks[neighbor['bankID']]
             ## if that neighbor's status is 1, increment the solventNeighbors variable by 1
-            if neighbor['status'] == 1: solventNeighbors = solventNeighbors + 1
-            Graph.node[self.id]['solventNeighbors'] = solventNeighbors
-        ## perform solvency calculation    
-        if self.capacity < (self.cumulativeShock / solventNeighbors): 
-            ## if a bank is insolvent, change its status to 0
-            Graph.node[self.id]['status'] = 0
-            ## and record the current timestep
-            Graph.node[self.id]['insolventTimestep'] = timestep
+            if neighborBank.status == 1: solventNeighbors = solventNeighbors + 1
+
+            ## reset in both graph and list
+            self.solventNeighbors = solventNeighbors
+
+    def checkSelfSolvency(self, timestep):
+        if self.cumulativeShock >= self.capacity:
+            self.status = 0
+            self.insolventTimestep = timestep
+
+    def calculateShockToPropagate(self):
+        ## We're working with integer division, so we need to multiply the numerator by 1.0 to make it a double/float/decimal
+        if self.status == 0 and self.solventNeighbors > 0:
+            self.shockToPropagate = (1.0 * self.cumulativeShock) / self.solventNeighbors
+
+    def propagateToNeighbors(self):
+        solventNeighbors = 0
+        ## acquire all neighbors for the current nodeID
+        neighbors = Graph.neighbors(self.id)
+        ## loop through all neighbors of current nodeID
+        for neighborID in range(0, len(neighbors)):
+            ## define the neighbor we're looking at
+            neighbor = Graph.node[neighborID]
+            neighborID = neighbor['bankID']
+            neighborBank = banks[neighborID]
+
+            if neighborBank.status == 0: continue
+            else:
+                neighborBank.cumulativeShock += self.shockToPropagate
+
+
 
 
 def generateNetwork():
@@ -52,14 +79,18 @@ def generateNetwork():
     ## remove self edges
     Graph.remove_edges_from(Graph.selfloop_edges())
     ## loop through all nodes and set capacity equal to degree
-    for i in range(0,len(Graph.node)):
-        Graph.node[i]['capacity'] = Graph.degree(i)
+    for bankID in range(0,len(Graph.node)):
+        Graph.node[bankID]['bankID'] = bankID;
+        Graph.node[bankID]['capacity'] = Graph.degree(bankID)
+        Graph.node[bankID]['solventNeighbors'] = Graph.degree(bankID)
         ## right now capacity = degree
-        Graph.node[i]['cumulativeShock'] = 0
+        Graph.node[bankID]['cumulativeShock'] = 0
         ## if a bank is solvent, status = 1. When it crashes, status = 0.
-        Graph.node[i]['status'] = 1
+        Graph.node[bankID]['status'] = 1
         ## here we set the timestep that the bank becomes insolvent to a big number
-        Graph.node[i]['insolventTimestep'] = 100000000
+        Graph.node[bankID]['insolventTimestep'] = 100000000
+        ## here we set the size of the shock to be propagated (zero at sim start)
+        Graph.node[bankID]['shockToPropagate'] = 0
     return Graph
   
 def generateConnectedPowerLawNetwork():
@@ -80,10 +111,13 @@ def generateBanks():
         bankID = nodeID
         capacity = Graph.node[nodeID]['capacity']
         cumulativeShock = Graph.node[nodeID]['cumulativeShock']
-        status = Graph.node[nodeID]['status']
         solventNeighbors = Graph.degree(nodeID)
+        status = Graph.node[nodeID]['status']
+        insolventTimestep = Graph.node[nodeID]['insolventTimestep']
+        shockToPropagate = Graph.node[nodeID]['shockToPropagate']
+
         ## make the bank according to those properties
-        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status) 
+        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate)
         banks.append(bank)
              
 def calculateDegreeAssortativity():
@@ -91,7 +125,10 @@ def calculateDegreeAssortativity():
 
 def checkGlobalSolvency():
     for nodeID in range(0, numberOfNodes):
-        banks[nodeID].checkSolvency()
+        banks[nodeID].checkNeighborSolvency()
+        banks[nodeID].checkSelfSolvency(timestep)
+
+
 
 def generateMultipleNetworks():
     global banks
@@ -101,6 +138,11 @@ def generateMultipleNetworks():
 
     ## while we still need to find more networks...
     while len(ListsOfBanks) < targetReplicates:
+        ## here we wipe out the existing banks list to get ready for the next bank
+        banks = []
+        ## and to be safe, we wipe out the existing Graph to make room for the next
+        Graph = nx.Graph()
+
         ## generate a power law network that is connected
         generateConnectedPowerLawNetwork()
         ## make a bank list to match nodes in the power law network we just made
@@ -119,14 +161,11 @@ def generateMultipleNetworks():
             ListsOfBanks.append(banks)
             ## and add the network to a global list of networks
             ListsOfNetworks.append(Graph)
-    ## here we wipe out the existing banks list to get ready for the next bank
-    banks = []
-    ## and to be safe, we wipe out the existing Graph to make room for the next
-    Graph = nx.Graph()
 
 
 ## here is where the code actually executes
 generateMultipleNetworks()
 ## once the banks are made, we start the simulation
-sim.run(25, ListsOfBanks[0], ListsOfNetworks[0])
+sim.setupShocks(shockSize, ListsOfBanks[0], ListsOfNetworks[0])
+sim.runTimesteps()
 
