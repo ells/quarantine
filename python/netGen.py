@@ -3,9 +3,9 @@ from networkx.utils import powerlaw_sequence
 import numpy as np
 import sim
 
-numberOfNodes = 100
+numberOfNodes = 250
 powerLawAlpha = 2
-shockSize = 25
+shockSize = 2
 targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
@@ -48,7 +48,7 @@ class Bank:
     def calculateShockToPropagate(self):
         ## We're working with integer division, so we need to multiply the numerator by 1.0 to make it a double/float/decimal
         if self.status == 0 and self.solventNeighbors > 0:
-            self.shockToPropagate = (1.0 * self.cumulativeShock) / self.solventNeighbors
+            self.shockToPropagate = (1.0 * self.cumulativeShock + self.capacity) / self.solventNeighbors
 
     def propagateToNeighbors(self):
         solventNeighbors = 0
@@ -60,13 +60,9 @@ class Bank:
             neighbor = Graph.node[neighborID]
             neighborID = neighbor['bankID']
             neighborBank = banks[neighborID]
-
             if neighborBank.status == 0: continue
             else:
                 neighborBank.cumulativeShock += self.shockToPropagate
-
-
-
 
 def generateNetwork():
     global Graph
@@ -128,14 +124,11 @@ def checkGlobalSolvency():
         banks[nodeID].checkNeighborSolvency()
         banks[nodeID].checkSelfSolvency(timestep)
 
-
-
 def generateMultipleNetworks():
     global banks
     global Graph
     global ListsOfBanks
     global ListsOfNetworks
-
     ## while we still need to find more networks...
     while len(ListsOfBanks) < targetReplicates:
         ## here we wipe out the existing banks list to get ready for the next bank

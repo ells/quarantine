@@ -45,33 +45,29 @@ def selectBanksToShock():
 
 def shockBanks():
     for bankID in range(0, len(banksToShock)):
-        banks[bankID].cumulativeShock = banks[bankID].capacity
+        bank = banks[bankID]
+        bank.cumulativeShock = bank.capacity
 
 def countBankruptcies():
     bankruptBanks = 0
     for bankID in range(0, len(banks)):
-        banks[bankID].checkSelfSolvency(timestep)
-        if banks[bankID].cumulativeShock >= banks[bankID].capacity: bankruptBanks = bankruptBanks + 1
+        bank = banks[bankID]
+        bank.checkSelfSolvency(timestep)
+        if bank.cumulativeShock >= bank.capacity: bankruptBanks = bankruptBanks + 1
     return bankruptBanks
-
-def countStatusZero():
-    statusZero = 0;
-    for bankID in range(0, len(banks)):
-        banks[bankID].checkSelfSolvency(timestep)
-        if banks[bankID].status == 0: statusZero = statusZero + 1
-    return statusZero
-
 
 def countShocks():
     shockedBanks = 0
     for bankID in range(0,len(banks)):
-        if banks[bankID].cumulativeShock > 0: shockedBanks = shockedBanks + 1
+        bank = banks[bankID]
+        if bank.cumulativeShock > 0: shockedBanks = shockedBanks + 1
     return shockedBanks
 
 def countCrippledBanks():
     crippledBanks = 0
     for bankID in range(0,len(banks)):
-        if banks[bankID].cumulativeShock < banks[bankID].capacity and banks[bankID].cumulativeShock > 0:
+        bank = banks[bankID]
+        if bank.cumulativeShock < bank.capacity and bank.cumulativeShock > 0:
             crippledBanks = crippledBanks + 1
     return crippledBanks
 
@@ -79,18 +75,30 @@ def runTimesteps():
     global timestep
     while running():
         for bankID in range(0, len(banks)):
-            banks[bankID].checkSelfSolvency(timestep)
-            banks[bankID].checkNeighborSolvency()
+            bank = banks[bankID]
+            bank.checkSelfSolvency(timestep)
+            bank.checkNeighborSolvency()
 
         for bankID in range(0, len(banks)):
             bank = banks[bankID]
             bank.calculateShockToPropagate()
             bank.propagateToNeighbors()
         timestep = timestep + 1
+        updateGraph()
+
+def updateGraph():
+    for bankID in range(0, len(banks)):
+        bank = banks[bankID]
+        bankInGraph = bankGraph.node[bankID]
+        bankInGraph['cumulativeShock'] = bank.cumulativeShock
+        bankInGraph['status'] = bank.status
+        bankInGraph['insolventTimestep'] = bank.insolventTimestep
+        bankInGraph['solventNeighbors'] = bank.solventNeighbors
+
 
 
 def running():
-    print 't=', timestep, 'status0=', countStatusZero(), 'bankrupt=', countBankruptcies(), 'crippled=', countCrippledBanks(), 'shocked=', countShocks()
+    print 't=', timestep, 'bankrupt=', countBankruptcies(), 'crippled=', countCrippledBanks(), 'shocked=', countShocks()
 
     if countCrippledBanks() == 0 and timestep > 0: return False
     else: return True
