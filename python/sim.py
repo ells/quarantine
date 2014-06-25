@@ -75,17 +75,20 @@ class Simulation:
         return crippledBanks
 
     def runTimesteps(self, timestep):
-        while self.running(timestep):
-            for bankID in range(0, len(banks)):
-                bank = banks[bankID]
-                bank.checkNeighborSolvency(self.graph, self.banks)
-                bank.checkSelfSolvency(timestep)
-                bank = banks[bankID]
-                bank.calculateShockToPropagate()
-                bank.propagateToNeighbors(self.graph, self.banks)
-            timestep = timestep + 1
-            self.updateGraph()
-        print timestep, self.countBankruptcies(), self.shockSize, len(self.banksToShock), self.countGlobalCumulativeShock(), self.assortativity
+        print "yay for timesteps"
+
+    # def runTimesteps(self, timestep):
+    #     while self.running(timestep):
+    #         for bankID in range(0, len(banks)):
+    #             bank = banks[bankID]
+    #             bank.checkNeighborSolvency(self.graph, self.banks)
+    #             bank.checkSelfSolvency(timestep)
+    #             bank = banks[bankID]
+    #             bank.calculateShockToPropagate()
+    #             bank.propagateToNeighbors(self.graph, self.banks)
+    #         timestep = timestep + 1
+    #         self.updateGraph()
+    #     print timestep, self.countBankruptcies(), self.shockSize, len(self.banksToShock), self.countGlobalCumulativeShock(), self.assortativity
 
     def updateGraph(self):
         for bankID in range(0, len(banks)):
@@ -104,8 +107,3 @@ class Simulation:
         return globalShock
 
 
-    def running(self, timestep):
-        #print 't=', timestep, 'bankrupt=', self.countBankruptcies(), 'crippled=', self.countCrippledBanks(), 'shocked=', self.countShocks()
-
-        if self.countCrippledBanks() == 0 and timestep > 0: return False
-        else: return True
