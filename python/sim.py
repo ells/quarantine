@@ -1,6 +1,6 @@
 from random import randint
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, banksToShock, timestep, assortativity):
+    def __init__(self, id, banks, graph, shockSize, banksToShock, timestep, assortativity, totalCapacity):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -8,6 +8,7 @@ class Simulation:
         self.banksToShock = banksToShock
         self.timestep = timestep
         self.assortativity = assortativity
+        self.totalCapacity = totalCapacity
 
     def setupShocks(self, shock, bankList, Graph):
         ## this function is called from netGen
@@ -50,45 +51,49 @@ class Simulation:
             bank = banks[bankID]
             bank.cumulativeShock = bank.capacity
 
-    def countBankruptcies(self):
-        global bankruptBanks
-        bankruptBanks = 0
+    def countSolvent(self):
+        solventBanks = 0;
         for bankID in range(0, len(banks)):
             bank = banks[bankID]
-            bank.checkSelfSolvency(self.timestep)
-            if bank.cumulativeShock >= bank.capacity: bankruptBanks = bankruptBanks + 1
-        return bankruptBanks
+            if bank.status == "solvent": solventBanks += 1
+        return solventBanks
 
-    def countShocks(self):
-        shockedBanks = 0
+    def countFailed(self):
+        failedBanks = 0
+        for bankID in range(0, len(banks)):
+            bank = banks[bankID]
+            if bank.status == "fail": failedBanks += 1
+        return failedBanks
+
+    def countDead(self):
+        deadBanks = 0
+        for bankID in range(0, len(banks)):
+            bank = banks[bankID]
+            if bank.status == "dead": deadBanks += 1
+        return deadBanks
+
+    def countExposed(self):
+        exposedBanks = 0
         for bankID in range(0,len(banks)):
             bank = banks[bankID]
-            if bank.cumulativeShock > 0: shockedBanks = shockedBanks + 1
-        return shockedBanks
+            if bank.status == "exposed": exposedBanks += 1
+        return exposedBanks
 
-    def countCrippledBanks(self):
-        crippledBanks = 0
-        for bankID in range(0,len(banks)):
-            bank = banks[bankID]
-            if bank.cumulativeShock < bank.capacity and bank.cumulativeShock > 0:
-                crippledBanks = crippledBanks + 1
-        return crippledBanks
-
-    def runTimesteps(self, timestep):
-        print "yay for timesteps"
-
-    # def runTimesteps(self, timestep):
-    #     while self.running(timestep):
-    #         for bankID in range(0, len(banks)):
-    #             bank = banks[bankID]
-    #             bank.checkNeighborSolvency(self.graph, self.banks)
-    #             bank.checkSelfSolvency(timestep)
-    #             bank = banks[bankID]
-    #             bank.calculateShockToPropagate()
-    #             bank.propagateToNeighbors(self.graph, self.banks)
-    #         timestep = timestep + 1
-    #         self.updateGraph()
-    #     print timestep, self.countBankruptcies(), self.shockSize, len(self.banksToShock), self.countGlobalCumulativeShock(), self.assortativity
+    def runTimesteps(self, timestepStart):
+        global timestep
+        timestep = timestepStart
+        while self.running(timestep):
+            for bankID in range(0, len(banks)):
+                bank = banks[bankID]
+                bank.killBank()
+                bank.updateStatus(timestep)
+                bank.updateSolventNeighbors(self.graph, self.banks)
+                bank.calculateShockToPropagate()
+                bank.propagateToNeighbors(self.graph, self.banks)
+            timestep += 1
+            #print timestep, self.countSolvent(), self.countExposed(), self.countFailed(), self.countDead()
+            self.updateGraph()
+        print timestep, self.shockSize, len(self.banksToShock), self.countDead(), '{0:.4g}'.format(self.countGlobalCumulativeShock()/self.totalCapacity), '{0:.4g}'.format(self.assortativity)
 
     def updateGraph(self):
         for bankID in range(0, len(banks)):
@@ -106,4 +111,6 @@ class Simulation:
             globalShock = globalShock + bank.cumulativeShock
         return globalShock
 
-
+    def running(self, timestep):
+        if self.countFailed() == 0 and timestep > 0: return False
+        else: return True

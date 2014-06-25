@@ -2,10 +2,10 @@ import networkx as nx
 from networkx.utils import powerlaw_sequence
 import numpy as np
 import copy as cp
-from sim import Simulation
 from bank import Bank
+from sim import Simulation
 
-numberOfNodes = 100
+numberOfNodes = 250
 powerLawAlpha = 2
 shockSize = 25
 targetAssort = -0.2
@@ -38,8 +38,11 @@ def generateNetwork():
         Graph.node[bankID]['solventNeighbors'] = Graph.degree(bankID)
         ## right now capacity = degree
         Graph.node[bankID]['cumulativeShock'] = 0
-        ## if a bank is solvent, status = 1. When it crashes, status = 0.
-        Graph.node[bankID]['status'] = 1
+        ## solvent = normal
+        ## exposed = cumulative shock is less than capacity
+        ## fail = recently failed, about to spread
+        ## dead = can no longer spread or receive shocks
+        Graph.node[bankID]['status'] = 'solvent'
         ## here we set the timestep that the bank becomes insolvent to a big number
         Graph.node[bankID]['insolventTimestep'] = 100000000
         ## here we set the size of the shock to be propagated (zero at sim start)
@@ -70,16 +73,11 @@ def generateBanks():
         shockToPropagate = Graph.node[nodeID]['shockToPropagate']
 
         ## make the bank according to those properties
-        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate, assortativity)
+        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate)
         banks.append(bank)
              
 def calculateDegreeAssortativity():
     return nx.degree_assortativity_coefficient(Graph)
-
-def checkGlobalSolvency():
-    for nodeID in range(0, numberOfNodes):
-        banks[nodeID].checkNeighborSolvency(Graph, banks)
-        banks[nodeID].checkSelfSolvency(timestep)
 
 def generateMultipleNetworks():
     global assortativity
@@ -99,7 +97,6 @@ def generateMultipleNetworks():
         ## make a bank list to match nodes in the power law network we just made
         generateBanks()
         ## globally set the number of solvent neighbors via the fxn specific to the Bank class
-        checkGlobalSolvency()
         assortativity = calculateDegreeAssortativity()
         ## measure assortativity of the network and compare to target assortativity
         deltaAssort = np.abs(np.abs(assortativity) - np.abs(targetAssort))
@@ -111,14 +108,19 @@ def generateMultipleNetworks():
             ## and add the network to a global list of networks
             ListsOfNetworks.append(Graph)
 
-generateMultipleNetworks()
 
-print 'timestep', 'bankruptcies', 'shockSize', 'shockCount', 'globalCumulativeShock', 'assortativity'
+generateMultipleNetworks()
+print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity' , 'assortativity'
+
 for simID in range(0,simCount):
     timestep = 0
     banksCopy = cp.deepcopy(ListsOfBanks[0])
     networkCopy = cp.deepcopy(ListsOfNetworks[0])
-    simulation = Simulation(id, banksCopy, networkCopy, shockSize, [], timestep, assortativity)
+
+    totalCapacity = 0
+    for bankID in range(0, len(banksCopy)): totalCapacity += banksCopy[bankID].capacity
+
+    simulation = Simulation(id, banksCopy, networkCopy, shockSize, [], timestep, assortativity, totalCapacity)
     simulations.append(simulation)
     simulations[simID].setupShocks(shockSize, banksCopy, networkCopy)
     simulations[simID].runTimesteps(timestep)
