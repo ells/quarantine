@@ -27,11 +27,12 @@ class Bank:
         if (self.status == "solvent" or "exposed") and (self.capacity > self.cumulativeShock > 0): self.status = "exposed"
 
         ## update status for solvent/exposed banks that have failed
-        if (self.cumulativeShock >= self.capacity) and (self.status == "solvent" or self.status == "exposed"): self.status = "fail"
+        if (self.cumulativeShock >= self.capacity) and (self.status == "solvent" or self.status == "exposed"):
+            self.insolventTimestep = timestep
+            self.status = "fail"
 
     def killBank(self):
         if self.status == "fail": self.status = "dead"
-
 
     def calculateShockToPropagate(self):
         ## We're working with integer division, so we need to multiply the numerator by 1.0 to make it a double/float/decimal
@@ -42,9 +43,8 @@ class Bank:
         ## acquire all neighbors for the current nodeID
         neighbors = Graph.neighbors(self.id)
         ## loop through all neighbors of current nodeID
-        for neighborID in range(0, len(neighbors)):
-            ## define the neighbor we're looking at
-            neighbor = Graph.node[neighborID]
-            neighborID = neighbor['bankID']
-            neighborBank = banks[neighborID]
-            if (neighborBank.status == "solvent" or "exposed"): neighborBank.cumulativeShock += self.shockToPropagate
+        for neighborIndex in range(0, len(neighbors)):
+            neighborID = neighbors[neighborIndex]
+            neighbor = banks[neighborID]
+
+            if neighbor.status != "fail" or neighbor.status != "dead": neighbor.cumulativeShock += self.shockToPropagate

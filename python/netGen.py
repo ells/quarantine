@@ -5,9 +5,9 @@ import copy as cp
 from bank import Bank
 from sim import Simulation
 
-numberOfNodes = 250
+numberOfNodes = 100
 powerLawAlpha = 2
-shockSize = 25
+shockSize = 15
 targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
@@ -17,7 +17,7 @@ banks = []
 ListsOfBanks = []
 ListsOfNetworks = []
 timestep = 0
-simCount = 100
+simCount = 10
 simulations = []
 bankruptBanks = 0
 

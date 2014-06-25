@@ -1,4 +1,6 @@
 from random import randint
+import networkx as nx
+
 class Simulation:
     def __init__(self, id, banks, graph, shockSize, banksToShock, timestep, assortativity, totalCapacity):
         self.id = id
@@ -85,7 +87,9 @@ class Simulation:
         while self.running(timestep):
             for bankID in range(0, len(banks)):
                 bank = banks[bankID]
+                ## kill banks that failed at last timestep
                 bank.killBank()
+                ## update new statuses
                 bank.updateStatus(timestep)
                 bank.updateSolventNeighbors(self.graph, self.banks)
                 bank.calculateShockToPropagate()
@@ -93,7 +97,15 @@ class Simulation:
             timestep += 1
             #print timestep, self.countSolvent(), self.countExposed(), self.countFailed(), self.countDead()
             self.updateGraph()
+
+        # shockProp = self.countGlobalCumulativeShock()/self.totalCapacity
+        # if shockProp > 1:
+        #     nx.write_gexf(self.graph, "shockProp_greaterThan1.gexf")
+        #     return
+
         print timestep, self.shockSize, len(self.banksToShock), self.countDead(), '{0:.4g}'.format(self.countGlobalCumulativeShock()/self.totalCapacity), '{0:.4g}'.format(self.assortativity)
+        nx.write_gexf(self.graph, "shockProp_greaterThan1.gexf")
+
 
     def updateGraph(self):
         for bankID in range(0, len(banks)):
@@ -102,6 +114,7 @@ class Simulation:
             bankInGraph['cumulativeShock'] = bank.cumulativeShock
             bankInGraph['status'] = bank.status
             bankInGraph['insolventTimestep'] = bank.insolventTimestep
+            bankInGraph['shockToPropagate'] = bank.shockToPropagate
             bankInGraph['solventNeighbors'] = bank.solventNeighbors
 
     def countGlobalCumulativeShock(self):
