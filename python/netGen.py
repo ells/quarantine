@@ -70,7 +70,7 @@ def generateBanks():
         shockToPropagate = Graph.node[nodeID]['shockToPropagate']
 
         ## make the bank according to those properties
-        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate)
+        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate, assortativity)
         banks.append(bank)
              
 def calculateDegreeAssortativity():

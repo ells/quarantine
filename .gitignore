@@ -9,3 +9,5 @@ python/sim.pyc
 *.pyc
 
 python/sim.pyc
+
+*.gexf
