@@ -24,7 +24,7 @@ class Bank:
             self.solventNeighbors = solventNeighbors
 
     def checkSelfSolvency(self, timestep):
-        if self.cumulativeShock >= self.capacity:
+        if self.cumulativeShock >= self.capacity and self.status == 1:
             self.status = 0
             self.insolventTimestep = timestep
 
