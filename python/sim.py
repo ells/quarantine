@@ -27,10 +27,13 @@ class Simulation:
         self.shockBanks()
 
     def selectBanksToShock(self):
+        global bankToShock
+        banksToShock = []
         currentShockSize = 0
         while currentShockSize < totalShockSize:
             ## first we pick a random bank
             randomBankID = randint(0, len(banks)-1)
+            print randomBankID
             ## save that bank as an object
             bankToShock = banks[randomBankID]
 
@@ -50,11 +53,11 @@ class Simulation:
 
     def shockBanks(self):
         for bankID in range(0, len(self.banksToShock)):
-            bank = banks[bankID]
+            bank = self.banksToShock[bankID]
             bank.cumulativeShock = bank.capacity
 
     def countSolvent(self):
-        solventBanks = 0;
+        solventBanks = 0
         for bankID in range(0, len(banks)):
             bank = banks[bankID]
             if bank.status == "solvent": solventBanks += 1
@@ -76,7 +79,7 @@ class Simulation:
 
     def countExposed(self):
         exposedBanks = 0
-        for bankID in range(0,len(banks)):
+        for bankID in range(0, len(banks)):
             bank = banks[bankID]
             if bank.status == "exposed": exposedBanks += 1
         return exposedBanks
@@ -84,6 +87,16 @@ class Simulation:
     def runTimesteps(self, timestepStart):
         global timestep
         timestep = timestepStart
+
+        for bankID in range(0,len(banks)):
+            bank = banks[bankID]
+            bank.updateStatus(timestep)
+            bank.updateSolventNeighbors(self.graph, self.banks)
+            bank.calculateShockToPropagate()
+            bank.propagateToNeighbors(self.graph, self.banks)
+            bank.killBank()
+        timestep += 1
+
         while self.running(timestep):
             for bankID in range(0, len(banks)):
                 bank = banks[bankID]
@@ -125,5 +138,5 @@ class Simulation:
         return globalShock
 
     def running(self, timestep):
-        if self.countFailed() == 0 and timestep > 0: return False
+        if self.countFailed() == 0 and timestep > 1: return False
         else: return True

@@ -7,7 +7,7 @@ from sim import Simulation
 
 numberOfNodes = 100
 powerLawAlpha = 2
-shockSize = 15
+shockSize = 5
 targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
@@ -33,7 +33,7 @@ def generateNetwork():
     Graph.remove_edges_from(Graph.selfloop_edges())
     ## loop through all nodes and set capacity equal to degree
     for bankID in range(0,len(Graph.node)):
-        Graph.node[bankID]['bankID'] = bankID;
+        Graph.node[bankID]['bankID'] = bankID
         Graph.node[bankID]['capacity'] = Graph.degree(bankID)
         Graph.node[bankID]['solventNeighbors'] = Graph.degree(bankID)
         ## right now capacity = degree

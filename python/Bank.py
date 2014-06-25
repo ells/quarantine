@@ -9,7 +9,7 @@ class Bank:
         self.shockToPropagate = shockToPropagate
 
     def updateSolventNeighbors(self, Graph, banks):
-        solventNeighbors = self.capacity
+        potentialNeighbors = 0
         ## acquire all neighbors for the current nodeID
         neighbors = Graph.neighbors(self.id)
         ## loop through all neighbors of current nodeID
@@ -17,9 +17,9 @@ class Bank:
             neighborID = neighbors[neighborIndex]
             neighbor = banks[neighborID]
             ## if that neighbor's status is dead or failed, then decrement the node's degree
-            if neighbor.status == "dead" or neighbor.status == "failed": solventNeighbors -= 1
+            if neighbor.status == "exposed" or neighbor.status == "solvent": potentialNeighbors += 1
             ## reset in both graph and list
-            self.solventNeighbors = solventNeighbors
+            self.solventNeighbors = potentialNeighbors
 
     def updateStatus(self, timestep):
         ## update status for exposed/solvent banks that DO NOT fail
@@ -36,7 +36,7 @@ class Bank:
     def calculateShockToPropagate(self):
         ## We're working with integer division, so we need to multiply the numerator by 1.0 to make it a double/float/decimal
         if self.status == "fail" and self.solventNeighbors > 0:
-            self.shockToPropagate = (1.0 * self.cumulativeShock + self.capacity) / self.solventNeighbors
+            self.shockToPropagate = ((1.0 * self.cumulativeShock) + (0 * self.capacity)) / self.solventNeighbors
 
     def propagateToNeighbors(self, Graph, banks):
         ## acquire all neighbors for the current nodeID
@@ -46,4 +46,4 @@ class Bank:
             neighborID = neighbors[neighborIndex]
             neighbor = banks[neighborID]
 
-            if neighbor.status != "fail" or neighbor.status != "dead": neighbor.cumulativeShock += self.shockToPropagate
+            if neighbor.status == "solvent" or neighbor.status == "exposed": neighbor.cumulativeShock += self.shockToPropagate
