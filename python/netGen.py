@@ -2,7 +2,7 @@ import networkx as nx
 from networkx.utils import powerlaw_sequence
 import numpy as np
 import copy as cp
-from Bank import Bank
+from bank import Bank
 from sim import Simulation
 
 numberOfNodes = 100
