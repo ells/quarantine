@@ -7,7 +7,7 @@ from sim import Simulation
 
 numberOfNodes = 100
 powerLawAlpha = 2
-shockSize = 5
+shockSize = 25
 targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
@@ -17,9 +17,12 @@ banks = []
 ListsOfBanks = []
 ListsOfNetworks = []
 timestep = 0
-simCount = 10
+simCount = 1000
 simulations = []
 bankruptBanks = 0
+initialShockCount = 0
+capacityMultipler = 0.25
+shockMultiplier = 0.25
 
 def generateNetwork():
     global Graph
@@ -120,7 +123,7 @@ for simID in range(0,simCount):
     totalCapacity = 0
     for bankID in range(0, len(banksCopy)): totalCapacity += banksCopy[bankID].capacity
 
-    simulation = Simulation(id, banksCopy, networkCopy, shockSize, [], timestep, assortativity, totalCapacity)
+    simulation = Simulation(id, banksCopy, networkCopy, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier)
     simulations.append(simulation)
     simulations[simID].setupShocks(shockSize, banksCopy, networkCopy)
     simulations[simID].runTimesteps(timestep)

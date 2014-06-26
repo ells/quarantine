@@ -33,10 +33,10 @@ class Bank:
     def killBank(self):
         if self.status == "fail": self.status = "dead"
 
-    def calculateShockToPropagate(self):
+    def calculateShockToPropagate(self, capacityMultiplier, shockMultiplier):
         ## We're working with integer division, so we need to multiply the numerator by 1.0 to make it a double/float/decimal
         if self.status == "fail" and self.solventNeighbors > 0:
-            self.shockToPropagate = ((1.0 * self.cumulativeShock) + (0 * self.capacity)) / self.solventNeighbors
+            self.shockToPropagate = ((capacityMultiplier * self.capacity) + (shockMultiplier * self.cumulativeShock)) / self.solventNeighbors
 
     def propagateToNeighbors(self, Graph, banks):
         ## acquire all neighbors for the current nodeID
