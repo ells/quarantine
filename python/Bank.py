@@ -8,10 +8,10 @@ class Bank:
         self.insolventTimestep = insolventTimestep
         self.shockToPropagate = shockToPropagate
 
-    def updateSolventNeighbors(self, graph, banks):
+    def updateSolventNeighbors(self, Graph, banks):
         potentialNeighbors = 0
         ## acquire all neighbors for the current nodeID
-        neighbors = graph.neighbors(self.id)
+        neighbors = Graph.neighbors(self.id)
         ## loop through all neighbors of current nodeID
         for neighborIndex in range(0, len(neighbors)):
             neighborID = neighbors[neighborIndex]
@@ -38,16 +38,12 @@ class Bank:
         if self.status == "fail" and self.solventNeighbors > 0:
             self.shockToPropagate = ((capacityMultiplier * self.capacity) + (shockMultiplier * self.cumulativeShock)) / self.solventNeighbors
 
-    def propagateToNeighbors(self, graph, banks):
+    def propagateToNeighbors(self, Graph, banks):
         ## acquire all neighbors for the current nodeID
-        neighbors = graph.neighbors(self.id)
+        neighbors = Graph.neighbors(self.id)
         ## loop through all neighbors of current nodeID
         for neighborIndex in range(0, len(neighbors)):
-            ## find the neighbor in the neighbors list
-            neighbor = neighbors[neighborIndex]
-            ## then find that neighbor in the master list of banks
-            neighborBank = banks[neighbor]
+            neighborID = neighbors[neighborIndex]
+            neighbor = banks[neighborID]
 
-            ## if the neighboring bank is still active, propagate the shock to that bank by adding to its cumulative shock
-            if neighborBank.status == "solvent" or neighborBank.status == "exposed":
-                neighborBank.cumulativeShock += self.shockToPropagate
+            if neighbor.status == "solvent" or neighbor.status == "exposed": neighbor.cumulativeShock += self.shockToPropagate

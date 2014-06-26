@@ -12,14 +12,20 @@ targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
 assortativity = 0
+Graph = nx.Graph()
 banks = []
+ListsOfBanks = []
+ListsOfNetworks = []
 timestep = 0
 simCount = 1000
 simulations = []
+bankruptBanks = 0
+initialShockCount = 0
 capacityMultipler = 0.25
 shockMultiplier = 0.25
 
 def generateNetwork():
+    global Graph
     ## use a networkx function to create a degree sequence that follows a power law
     degreeSequence=nx.utils.create_degree_sequence(numberOfNodes,powerlaw_sequence, 100)
     ## use aforementioned degree sequence to configure a pseudograph that contains self-loops & hyper-edges
@@ -48,49 +54,53 @@ def generateNetwork():
   
 def generateConnectedPowerLawNetwork():
     ## Use our generateNetwork function to create a sparse graph w/ power law capacities 
-    graph = generateNetwork()
+    global Graph
+    Graph = generateNetwork()
 
     ## there is no guarantee that the network created above is completely connected
     ## therefore, we'll keep re-making the graph until we get a fully connected one
-    while nx.is_connected(graph) != True:
-        graph = generateNetwork()
-    return graph
+    while nx.is_connected(Graph) != True:
+        Graph = generateNetwork()
 
-def generateBanks(graph):
+def generateBanks():
+    global banks
     banks = []
     for nodeID in range(0, numberOfNodes):
         ## for each node, record properties
         bankID = nodeID
-        capacity = graph.node[nodeID]['capacity']
-        cumulativeShock = graph.node[nodeID]['cumulativeShock']
-        solventNeighbors = graph.degree(nodeID)
-        status = graph.node[nodeID]['status']
-        insolventTimestep = graph.node[nodeID]['insolventTimestep']
-        shockToPropagate = graph.node[nodeID]['shockToPropagate']
+        capacity = Graph.node[nodeID]['capacity']
+        cumulativeShock = Graph.node[nodeID]['cumulativeShock']
+        solventNeighbors = Graph.degree(nodeID)
+        status = Graph.node[nodeID]['status']
+        insolventTimestep = Graph.node[nodeID]['insolventTimestep']
+        shockToPropagate = Graph.node[nodeID]['shockToPropagate']
 
         ## make the bank according to those properties
         bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate)
         banks.append(bank)
-    return banks
              
-def calculateDegreeAssortativity(graph):
-    return nx.degree_assortativity_coefficient(graph)
+def calculateDegreeAssortativity():
+    return nx.degree_assortativity_coefficient(Graph)
 
 def generateMultipleNetworks():
-    ListsOfBanks = []
-    ListsOfNetworks = []
+    global assortativity
+    global banks
+    global Graph
+    global ListsOfBanks
+    global ListsOfNetworks
     ## while we still need to find more networks...
     while len(ListsOfBanks) < targetReplicates:
         ## here we wipe out the existing banks list to get ready for the next bank
         banks = []
         ## and to be safe, we wipe out the existing Graph to make room for the next
-        graph = nx.Graph()
+        Graph = nx.Graph()
+
         ## generate a power law network that is connected
-        graph = generateConnectedPowerLawNetwork()
+        generateConnectedPowerLawNetwork()
         ## make a bank list to match nodes in the power law network we just made
-        banks = generateBanks(graph)
-        ## set the number of solvent neighbors via the fxn specific to the Bank class
-        assortativity = calculateDegreeAssortativity(graph)
+        generateBanks()
+        ## globally set the number of solvent neighbors via the fxn specific to the Bank class
+        assortativity = calculateDegreeAssortativity()
         ## measure assortativity of the network and compare to target assortativity
         deltaAssort = np.abs(np.abs(assortativity) - np.abs(targetAssort))
 
@@ -99,33 +109,21 @@ def generateMultipleNetworks():
             ## add the list of banks to a global list of banks
             ListsOfBanks.append(banks)
             ## and add the network to a global list of networks
-            ListsOfNetworks.append(graph)
-
-    return ListsOfBanks, ListsOfNetworks
+            ListsOfNetworks.append(Graph)
 
 
-banks_nets_lists = generateMultipleNetworks()
-ListsOfBanks = banks_nets_lists[0]
-ListsOfNetworks = banks_nets_lists[1]
-
-print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
+generateMultipleNetworks()
+print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity' , 'assortativity'
 
 for simID in range(0,simCount):
     timestep = 0
-    ## make copies of banks and nets so they don't change
     banksCopy = cp.deepcopy(ListsOfBanks[0])
     networkCopy = cp.deepcopy(ListsOfNetworks[0])
 
-    ## count of the total capacity of the financial network
     totalCapacity = 0
-    for bankID in range(0, len(banksCopy)):
-        totalCapacity += banksCopy[bankID].capacity
+    for bankID in range(0, len(banksCopy)): totalCapacity += banksCopy[bankID].capacity
 
-    ## init the simulation class
-    simulation = Simulation(id, banksCopy, networkCopy, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0)
-    ## append the simulation instance to the list of simulations
+    simulation = Simulation(id, banksCopy, networkCopy, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier)
     simulations.append(simulation)
-    ## shock banks by referencing the function housed inside the simulation (which is stored in the list of simulations)
-    simulations[simID].shockBanks(shockSize)
-    ## run timeteps by referencing the function housed inside the simulation (which is stored in the list of simulations)
+    simulations[simID].setupShocks(shockSize, banksCopy, networkCopy)
     simulations[simID].runTimesteps(timestep)
