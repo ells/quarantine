@@ -5,16 +5,14 @@ import copy as cp
 from bank import Bank
 from sim import Simulation
 
-numberOfNodes = 100
+numberOfNodes = 250
 powerLawAlpha = 2
-shockSize = 25
 targetAssort = -0.2
-targetReplicates = 1
+targetReplicates = 5
 assortThresh = 0.01
-assortativity = 0
 banks = []
 timestep = 0
-simCount = 1000
+simCount = 100
 simulations = []
 capacityMultipler = 0.25
 shockMultiplier = 0.25
@@ -101,31 +99,35 @@ def generateMultipleNetworks():
             ## and add the network to a global list of networks
             ListsOfNetworks.append(graph)
 
-    return ListsOfBanks, ListsOfNetworks
-
+    return ListsOfBanks, ListsOfNetworks, assortativity
 
 banks_nets_lists = generateMultipleNetworks()
+
 ListsOfBanks = banks_nets_lists[0]
 ListsOfNetworks = banks_nets_lists[1]
+assortativity = banks_nets_lists[2]
 
 print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
 
-for simID in range(0,simCount):
-    timestep = 0
-    ## make copies of banks and nets so they don't change
-    banksCopy = cp.deepcopy(ListsOfBanks[0])
-    networkCopy = cp.deepcopy(ListsOfNetworks[0])
+for netID in range(0, targetReplicates):
+    for shockSize in range(10, 50, 5):
+        simulations = []
+        for simID in range(0, simCount):
+            timestep = 0
+            ## make copies of banks and nets so they don't change
+            banks = cp.deepcopy(ListsOfBanks[netID])
+            network = cp.deepcopy(ListsOfNetworks[netID])
+            ## count of the total capacity of the financial network
+            totalCapacity = 0
+            for bankID in range(0, len(banks)):
+                totalCapacity += banks[bankID].capacity
 
-    ## count of the total capacity of the financial network
-    totalCapacity = 0
-    for bankID in range(0, len(banksCopy)):
-        totalCapacity += banksCopy[bankID].capacity
+            ## init the simulation class
+            simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0)
+            ## append the simulation instance to the list of simulations
+            simulations.append(simulation)
+            ## setupShocks by referencing the simulation in the list of simulations
+            simulations[simID].shockBanks()
+            ## run timeteps by referencing the simulation in the list of simulations
+            simulations[simID].runTimesteps(timestep)
 
-    ## init the simulation class
-    simulation = Simulation(id, banksCopy, networkCopy, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0)
-    ## append the simulation instance to the list of simulations
-    simulations.append(simulation)
-    ## setupShocks by referencing the simulation in the list of simulations
-    simulations[simID].shockBanks(shockSize)
-    ## run timeteps by referencing the simulation in the list of simulations
-    simulations[simID].runTimesteps(timestep)

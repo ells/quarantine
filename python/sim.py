@@ -14,26 +14,31 @@ class Simulation:
         self.shockMultiplier = shockMultiplier
         self.initialShockCount = initialShockCount
 
-    def shockBanks(self, shock):
-        totalShockSize = shock
-        banksToShock = []
+    def shockBanks(self):
+        totalShockSize = self.shockSize
         currentShockSize = 0
+        potentialShockList = []
+        shockList = []
+
+        for bankID in range(0, len(self.banks)):
+            bank = self.banks[bankID]
+            if bank.capacity <= totalShockSize: potentialShockList.append(bank)
+
         while currentShockSize < totalShockSize:
-            ## first we pick a random bank
-            randomBankID = randint(0, len(self.banks)-1)
-            ## save that bank as an object
-            bankToShock = self.banks[randomBankID]
-            ## sampling w/o replacement, so we have to do this to ensure that we don't pick the same bank twice
-            if bankToShock in banksToShock: continue
-            ## if the current bank's capacity is less than the total shock size...
-            if bankToShock.capacity + currentShockSize <= totalShockSize:
-               ## first add it to the banksToShock list (this allows us to do the sampling w/o replacement check a few lines up
-               banksToShock.append(bankToShock)
-               ## set the shock to the capacity
-               bankToShock.cumulativeShock = bankToShock.capacity
-               ## and be sure to reset the currentShockSize to reflect the fact that this bank has now been shocked
-               currentShockSize += bankToShock.capacity
-        self.initialShockCount = len(banksToShock)
+            randomIndex = randint(0, len(potentialShockList) - 1)
+            bankToTest = potentialShockList[randomIndex]
+
+            if currentShockSize + bankToTest.capacity <= totalShockSize:
+                bankToShock = bankToTest
+                bankToShock.cumulativeShock = bankToShock.capacity
+                shockList.append(bankToShock)
+                potentialShockList.remove(bankToShock)
+                currentShockSize += bankToShock.capacity
+
+        self.initialShockCount = len(shockList)
+        shockList = []
+        potentialShockList = []
+
 
     def processInitialShocks(self, timestepStart):
         ## We were having issues with initially-shocked banks propagating to their neighboring (also initially-shocked) banks.
@@ -52,6 +57,7 @@ class Simulation:
         return timestep
 
     def runTimesteps(self, timestepStart):
+        shockSize = self.countGlobalCumulativeShock()
 
         ## here we process the initial perturbation to the financial network
         timestep = self.processInitialShocks(timestepStart)
@@ -82,7 +88,7 @@ class Simulation:
         ## at this stage, the simulation is over, so we print the files
         ## this will likely be changed to output to files rather than print
         ## this is because printing to console is actually relatively resource intensive and can slow down sims substantially
-        print timestep, self.shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.countGlobalCumulativeShock()/self.totalCapacity), '{0:.4g}'.format(self.assortativity)
+        print timestep, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.countGlobalCumulativeShock()/self.totalCapacity), '{0:.4g}'.format(self.assortativity)
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set
