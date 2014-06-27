@@ -75,10 +75,11 @@ def calculateDegreeAssortativity(graph):
     return nx.degree_assortativity_coefficient(graph)
 
 def generateMultipleNetworks():
-    ListsOfBanks = []
+    listsOfBanks = []
     ListsOfNetworks = []
+    ListsOfAssortativities = []
     ## while we still need to find more networks...
-    while len(ListsOfBanks) < targetReplicates:
+    while len(listsOfBanks) < targetReplicates:
         ## here we wipe out the existing banks list to get ready for the next bank
         banks = []
         ## and to be safe, we wipe out the existing Graph to make room for the next
@@ -94,29 +95,32 @@ def generateMultipleNetworks():
 
         ## as long as the difference between assortativity and the target assortativity is smaller than a threshold
         if (deltaAssort < assortThresh):
-            ## add the list of banks to a global list of banks
-            ListsOfBanks.append(banks)
-            ## and add the network to a global list of networks
+            ## add the list of banks to a master list of banks
+            listsOfBanks.append(banks)
+            ## and add the network to a master list of networks
             ListsOfNetworks.append(graph)
+            ## and add the assortativity of the network to a master list
+            ListsOfAssortativities.append(assortativity)
 
-    return ListsOfBanks, ListsOfNetworks, assortativity
+    return listsOfBanks, ListsOfNetworks, ListsOfAssortativities
 
 banks_nets_lists = generateMultipleNetworks()
 
-ListsOfBanks = banks_nets_lists[0]
-ListsOfNetworks = banks_nets_lists[1]
-assortativity = banks_nets_lists[2]
+listsOfBanks = banks_nets_lists[0]
+listsOfNetworks = banks_nets_lists[1]
+listsOfAssorts = banks_nets_lists[2]
 
 print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
 
 for netID in range(0, targetReplicates):
+    assortativity = listsOfAssorts[netID]
     for shockSize in range(10, 50, 5):
         simulations = []
         for simID in range(0, simCount):
             timestep = 0
             ## make copies of banks and nets so they don't change
-            banks = cp.deepcopy(ListsOfBanks[netID])
-            network = cp.deepcopy(ListsOfNetworks[netID])
+            banks = cp.deepcopy(listsOfBanks[netID])
+            network = cp.deepcopy(listsOfNetworks[netID])
             ## count of the total capacity of the financial network
             totalCapacity = 0
             for bankID in range(0, len(banks)):
