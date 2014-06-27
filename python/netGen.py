@@ -113,9 +113,13 @@ listsOfAssorts = banks_nets_lists[2]
 print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
 
 for netID in range(0, targetReplicates):
+    ## set assortativity for each network
     assortativity = listsOfAssorts[netID]
-    for shockSize in range(10, 50, 5):
+    ## count from 10 to 50 in steps of 5
+    for shockSize in range(10, 55, 5):
+        ## wipe out the simulations list after each network
         simulations = []
+        ## run sims!
         for simID in range(0, simCount):
             timestep = 0
             ## make copies of banks and nets so they don't change

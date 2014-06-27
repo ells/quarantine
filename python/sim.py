@@ -20,25 +20,31 @@ class Simulation:
         potentialShockList = []
         shockList = []
 
+        ## first, we add all viable banks to a list (capacity < totalShock)
         for bankID in range(0, len(self.banks)):
             bank = self.banks[bankID]
             if bank.capacity <= totalShockSize: potentialShockList.append(bank)
 
+        ## then we enter a while loop
         while currentShockSize < totalShockSize:
+            ## keep picking banks randomly
             randomIndex = randint(0, len(potentialShockList) - 1)
             bankToTest = potentialShockList[randomIndex]
 
+            ## test to make sure that bank wont put us over our target shockSize
             if currentShockSize + bankToTest.capacity <= totalShockSize:
+                ## since we know the bank works, we change the name
                 bankToShock = bankToTest
+                ## shock the bank
                 bankToShock.cumulativeShock = bankToShock.capacity
+                ## add it to the shock list
                 shockList.append(bankToShock)
+                ## remove it from the potential shock list
                 potentialShockList.remove(bankToShock)
+                ## change the currentShockSize to reflect that we've shocked the bank
                 currentShockSize += bankToShock.capacity
-
+        ## set the initialShockCount (# of externally-shocked banks) so that it can be reported at the end of the simulation
         self.initialShockCount = len(shockList)
-        shockList = []
-        potentialShockList = []
-
 
     def processInitialShocks(self, timestepStart):
         ## We were having issues with initially-shocked banks propagating to their neighboring (also initially-shocked) banks.
