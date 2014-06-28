@@ -2,7 +2,7 @@ from random import randint
 import networkx as nx
 
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount):
+    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -13,6 +13,7 @@ class Simulation:
         self.capacityMultiplier = capacityMultiplier
         self.shockMultiplier = shockMultiplier
         self.initialShockCount = initialShockCount
+        self.lossFraction = (1.0 * self.shockSize) / self.totalCapacity
 
     def shockBanks(self):
         totalShockSize = self.shockSize
@@ -62,6 +63,14 @@ class Simulation:
         timestep += 1
         return timestep
 
+    def calculateLossFraction(self):
+        lostCapacity = 0
+        for bankID in range(0, len(self.banks)):
+            bank = self.banks[bankID]
+            if bank.status == "dead": lostCapacity += self.graph.degree(bank.id)
+
+        return (1.0 * lostCapacity) / self.totalCapacity
+
     def runTimesteps(self, timestepStart):
         shockSize = self.countGlobalCumulativeShock()
 
@@ -71,7 +80,6 @@ class Simulation:
         ## this effectively says : while(true) enter the timestep loop
         ## when the stop conditions are met (see sim.running() below) it reads: while(false) and exits the loop
         while self.running(timestep):
-
             ## first we loop through all the banks
             for bankID in range(0, len(self.banks)):
                 ## set the bank in question based on the master banks list
@@ -86,6 +94,7 @@ class Simulation:
                 bank.calculateShockToPropagate(self.capacityMultiplier, self.shockMultiplier)
                 ## now that we've calculated and set the bank's shock size, we propagate to its neighbors
                 bank.propagateToNeighbors(self.graph, self.banks)
+                self.lossFraction = self.calculateLossFraction()
             timestep += 1
             ## here we update the networkx graph object to reflect any changes to the banks in the banks list
             ## this is handy for outputting, head to sim.updateGraph() for more details
@@ -94,7 +103,7 @@ class Simulation:
         ## at this stage, the simulation is over, so we print the files
         ## this will likely be changed to output to files rather than print
         ## this is because printing to console is actually relatively resource intensive and can slow down sims substantially
-        print timestep, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.countGlobalCumulativeShock()/self.totalCapacity), '{0:.4g}'.format(self.assortativity)
+        print timestep, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set
@@ -115,6 +124,14 @@ class Simulation:
             bankInGraph['insolventTimestep'] = bank.insolventTimestep
             bankInGraph['shockToPropagate'] = bank.shockToPropagate
             bankInGraph['solventNeighbors'] = bank.solventNeighbors
+            bankInGraph['statusID'] = bank.statusID
+
+            if bank.status == "dead": bank.statusID = 4
+            if bank.status == "fail": bank.statusID = 3
+            if bank.status == "exposed": bank.statusID = 2
+            if bank.status == "solvent": bank.statusID = 1
+
+
 
     def countGlobalCumulativeShock(self):
         ## pretty self explanatory, we loop through all the banks and sum up their cumulative shocks
@@ -128,7 +145,7 @@ class Simulation:
         ## this runs the timesteps while loop
         ## when the count of failed banks reaches zero (and the simulation is running, aka timestep > 1)
         ## this function returns false and kills the while loops in the timesteps
-        if self.countFailed() == 0 and timestep > 1: return False
+        if self.countFailed() == 0 and timestep > 2: return False
         ## otherwise, returning true will keep it in an infinite loop
         else: return True
 

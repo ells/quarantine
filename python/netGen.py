@@ -8,11 +8,11 @@ from sim import Simulation
 numberOfNodes = 250
 powerLawAlpha = 2
 targetAssort = -0.2
-targetReplicates = 5
+targetReplicates = 1
 assortThresh = 0.01
 banks = []
-timestep = 0
-simCount = 100
+timestep = 1
+simCount = 1
 simulations = []
 capacityMultipler = 0.25
 shockMultiplier = 0.25
@@ -39,7 +39,7 @@ def generateNetwork():
         ## dead = can no longer spread or receive shocks
         Graph.node[bankID]['status'] = 'solvent'
         ## here we set the timestep that the bank becomes insolvent to a big number
-        Graph.node[bankID]['insolventTimestep'] = 100000000
+        Graph.node[bankID]['insolventTimestep'] = 50
         ## here we set the size of the shock to be propagated (zero at sim start)
         Graph.node[bankID]['shockToPropagate'] = 0
     return Graph
@@ -67,7 +67,7 @@ def generateBanks(graph):
         shockToPropagate = graph.node[nodeID]['shockToPropagate']
 
         ## make the bank according to those properties
-        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate)
+        bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate, "solvent")
         banks.append(bank)
     return banks
              
@@ -116,12 +116,12 @@ for netID in range(0, targetReplicates):
     ## set assortativity for each network
     assortativity = listsOfAssorts[netID]
     ## count from 10 to 50 in steps of 5
-    for shockSize in range(10, 55, 5):
+    for shockSize in range(25, 30, 5):
         ## wipe out the simulations list after each network
         simulations = []
         ## run sims!
         for simID in range(0, simCount):
-            timestep = 0
+            timestep = 1
             ## make copies of banks and nets so they don't change
             banks = cp.deepcopy(listsOfBanks[netID])
             network = cp.deepcopy(listsOfNetworks[netID])
@@ -131,7 +131,7 @@ for netID in range(0, targetReplicates):
                 totalCapacity += banks[bankID].capacity
 
             ## init the simulation class
-            simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0)
+            simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0)
             ## append the simulation instance to the list of simulations
             simulations.append(simulation)
             ## setupShocks by referencing the simulation in the list of simulations

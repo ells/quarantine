@@ -1,6 +1,6 @@
 class Bank:
     ## a class is an independent instantiation of a custom-made object in python
-    def __init__(self, id, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate):
+    def __init__(self, id, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate, statusID):
         ## the __init__(self, blah, blah, blah) is the mandatory way of initializing a custom class
         ## the "self" is just a way of associating each of the variables that come after it in the __init__() to that particular object
         ## therefore, each bank has its own ID, capacity, cumulativeShock, solventNeighbors, status, insolventTimesteps, and shockToPropagate
@@ -11,6 +11,7 @@ class Bank:
         self.status = status
         self.insolventTimestep = insolventTimestep
         self.shockToPropagate = shockToPropagate
+        self.statusID = 1
 
     def updateSolventNeighbors(self, graph, banks):
         potentialNeighbors = 0
@@ -26,6 +27,7 @@ class Bank:
             if neighbor.status == "exposed" or neighbor.status == "solvent": potentialNeighbors += 1
             ## reset in both graph and list
             self.solventNeighbors = potentialNeighbors
+            self.capacity = self.solventNeighbors
 
     def updateStatus(self, timestep):
         ## update status for exposed/solvent banks that DO NOT fail
@@ -47,7 +49,7 @@ class Bank:
         ## if the banks has failed AND it still has solvent neighbors then calculate the shock to be propagated
         ## we have to check for the solvent neighbors...otherwise we'd be dividing by zero and cause the apocalypse
         if self.status == "fail" and self.solventNeighbors > 0:
-            self.shockToPropagate = ((capacityMultiplier * self.capacity) + (shockMultiplier * self.cumulativeShock)) / self.solventNeighbors
+            self.shockToPropagate = (1.0 * (1.0 * capacityMultiplier * self.capacity) + (1.0 * shockMultiplier * self.cumulativeShock)) / self.solventNeighbors
 
     def propagateToNeighbors(self, graph, banks):
         ## acquire all neighbors for the current nodeID
