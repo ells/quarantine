@@ -26,8 +26,7 @@ class Bank:
             ## if that neighbor's status is dead or failed, then decrement the node's degree
             if neighbor.status == "exposed" or neighbor.status == "solvent": potentialNeighbors += 1
             ## reset in both graph and list
-            self.solventNeighbors = potentialNeighbors
-            self.capacity = self.solventNeighbors
+        self.solventNeighbors = potentialNeighbors
 
     def updateStatus(self, timestep):
         ## update status for exposed/solvent banks that DO NOT fail

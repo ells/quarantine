@@ -1,3 +1,4 @@
+import random
 from random import randint
 import networkx as nx
 
@@ -95,6 +96,7 @@ class Simulation:
                 ## now that we've calculated and set the bank's shock size, we propagate to its neighbors
                 bank.propagateToNeighbors(self.graph, self.banks)
                 self.lossFraction = self.calculateLossFraction()
+                self.selfQuarantine()
             timestep += 1
             ## here we update the networkx graph object to reflect any changes to the banks in the banks list
             ## this is handy for outputting, head to sim.updateGraph() for more details
@@ -180,6 +182,87 @@ class Simulation:
         ## banks that have been shocked but have not yet failed because the cumulativeShock < capacity
         exposedBanks = 0
         for bankID in range(0, len(self.banks)):
-            bank = self.anks[bankID]
+            bank = self.banks[bankID]
             if bank.status == "exposed": exposedBanks += 1
         return exposedBanks
+
+    def selfQuarantine(self):
+        print self.graph.number_of_edges()
+        selfQuarantineList = self.populateQuarantineList()
+        random.shuffle(selfQuarantineList)
+
+        self.selfQuarantineRecursion(selfQuarantineList)
+
+        for bankID in range(0, len(self.banks)):
+            bank = self.banks[bankID]
+            bank.updateStatus()
+
+
+    def populateQuarantineList(self):
+        selfQuarantineList = []
+        for bankID in range(0, len(self.banks)):
+            bank = self.banks[bankID]
+            ## if bank has not failed and has degree >= 2
+            if (bank.status == "solvent" or bank.status == "exposed") and (self.graph.degree(bank.id) >= 2):
+                ## and the remaining capacity > 1
+                if bank.capacity - bank.cumulativeShock > 1:
+                    ## and if the inverse connectedness is less than the loss fraction
+                    if (1.0 / bank.solventNeighbors) < self.lossFraction:
+                        selfQuarantineList.append(bank)
+                        print "t=", self.timestep, "length of selfQuarantineList", len(selfQuarantineList)
+
+        return selfQuarantineList
+
+    def selfQuarantineRecursion(self, selfQuarantineList):
+        ## grab the first bank in the shuffled list
+        if len(selfQuarantineList) == 0: return
+        bankToCheckID = selfQuarantineList[0].id
+        bankToCheck = self.banks[bankToCheckID]
+
+        ## confirm its self-quarantine criteria
+        if (bankToCheck.status == "solvent" or bankToCheck.status == "exposed") and (self.graph.degree(bankToCheck.id) >= 2):
+                print "solvent/exposed"
+                ## and the remaining capacity > 1
+                if bankToCheck.capacity - bankToCheck.cumulativeShock > 1:
+                    print "at least 2 edges"
+
+                    ## and if the inverse connectedness is less than the loss fraction
+                    if (1.0 / bankToCheck.solventNeighbors) < self.lossFraction:
+                        print "eligible"
+                        print self.graph.node[bankToCheck]
+
+                        ## find all neighbors of the self quarantining node
+
+                        neighbors = self.graph.neighbors(bankToCheck)
+                        ## select a random neighbor from the list of neighbors
+                        randomNeighbor = random.sample(neighbors, 1)
+                        ## and remove that edge from the graph
+                        self.graph.remove_edge(bankToCheck, randomNeighbor)
+                        ## increment cumulative shock for both banks by 1
+                        bankToCheck.cumulativeShock += 1
+                        randomNeighbor.cumulativeShock += 1
+                        ## recurse, but do NOT shuffle the list so that we can reconsider it until its ineligible for self-quarantine
+                        self.selfQuarantineRecursion(selfQuarantineList)
+        ## if we've made it this far, the bank can no longer self quarantine, so it is removed
+        selfQuarantineList.remove(bankToCheck)
+        ## we then reshuffle the list so that the 0th index is a new bank
+        random.shuffle(selfQuarantineList)
+        ## recurse
+        self.selfQuarantineRecursion(selfQuarantineList)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
