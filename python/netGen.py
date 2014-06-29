@@ -8,14 +8,15 @@ from sim import Simulation
 numberOfNodes = 250
 powerLawAlpha = 2
 targetAssort = -0.2
-targetReplicates = 1
+targetReplicates = 100
 assortThresh = 0.01
 banks = []
 timestep = 1
-simCount = 1
+simCount = 500
 simulations = []
-capacityMultipler = 0.25
-shockMultiplier = 0.25
+capacityMultipler = 1
+shockMultiplier = 1
+selfQuarantine = True
 
 def generateNetwork():
     ## use a networkx function to create a degree sequence that follows a power law
@@ -27,7 +28,7 @@ def generateNetwork():
     ## remove self edges
     Graph.remove_edges_from(Graph.selfloop_edges())
     ## loop through all nodes and set capacity equal to degree
-    for bankID in range(0,len(Graph.node)):
+    for bankID in range(0, len(Graph.node)):
         Graph.node[bankID]['bankID'] = bankID
         Graph.node[bankID]['capacity'] = Graph.degree(bankID)
         Graph.node[bankID]['solventNeighbors'] = Graph.degree(bankID)
@@ -110,13 +111,13 @@ listsOfBanks = banks_nets_lists[0]
 listsOfNetworks = banks_nets_lists[1]
 listsOfAssorts = banks_nets_lists[2]
 
-print 'timestep', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
+print 'timestep', 'selfQuarantine', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
 
 for netID in range(0, targetReplicates):
     ## set assortativity for each network
     assortativity = listsOfAssorts[netID]
     ## count from 10 to 50 in steps of 5
-    for shockSize in range(25, 30, 5):
+    for shockSize in range(20, 55, 5):
         ## wipe out the simulations list after each network
         simulations = []
         ## run sims!
@@ -131,7 +132,7 @@ for netID in range(0, targetReplicates):
                 totalCapacity += banks[bankID].capacity
 
             ## init the simulation class
-            simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0)
+            simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine)
             ## append the simulation instance to the list of simulations
             simulations.append(simulation)
             ## setupShocks by referencing the simulation in the list of simulations

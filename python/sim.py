@@ -3,7 +3,7 @@ from random import randint
 import networkx as nx
 
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction):
+    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -15,6 +15,7 @@ class Simulation:
         self.shockMultiplier = shockMultiplier
         self.initialShockCount = initialShockCount
         self.lossFraction = (1.0 * self.shockSize) / self.totalCapacity
+        self.selfQuarantine = selfQuarantine
 
     def shockBanks(self):
         totalShockSize = self.shockSize
@@ -96,7 +97,8 @@ class Simulation:
                 ## now that we've calculated and set the bank's shock size, we propagate to its neighbors
                 bank.propagateToNeighbors(self.graph, self.banks)
                 self.lossFraction = self.calculateLossFraction()
-                self.selfQuarantine()
+                ## if self quarantine is True, execute, otherwise continue as normal
+                if self.selfQuarantine: self.selfQuarantine()
             timestep += 1
             ## here we update the networkx graph object to reflect any changes to the banks in the banks list
             ## this is handy for outputting, head to sim.updateGraph() for more details
@@ -105,7 +107,7 @@ class Simulation:
         ## at this stage, the simulation is over, so we print the files
         ## this will likely be changed to output to files rather than print
         ## this is because printing to console is actually relatively resource intensive and can slow down sims substantially
-        print timestep, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
+        print timestep, self.selfQuarantine, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set
@@ -190,7 +192,6 @@ class Simulation:
         selfQuarantineList = self.populateQuarantineList()
         random.shuffle(selfQuarantineList)
         self.selfQuarantineRecursion(selfQuarantineList)
-
         for bankID in range(0, len(self.banks)):
             bank = self.banks[bankID]
             bank.updateStatus(self.timestep)
