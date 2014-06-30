@@ -97,8 +97,8 @@ class Simulation:
                 ## now that we've calculated and set the bank's shock size, we propagate to its neighbors
                 bank.propagateToNeighbors(self.graph, self.banks)
                 self.lossFraction = self.calculateLossFraction()
-                ## if self quarantine is True, execute, otherwise continue as normal
-                if self.selfQuarantine: self.selfQuarantine()
+                ## if self.selfQuarantine is on, execute, otherwise continue as normal
+                if self.selfQuarantine == True: self.selfQuarantineIntervention()
             timestep += 1
             ## here we update the networkx graph object to reflect any changes to the banks in the banks list
             ## this is handy for outputting, head to sim.updateGraph() for more details
@@ -188,7 +188,7 @@ class Simulation:
             if bank.status == "exposed": exposedBanks += 1
         return exposedBanks
 
-    def selfQuarantine(self):
+    def selfQuarantineIntervention(self):
         selfQuarantineList = self.populateQuarantineList()
         random.shuffle(selfQuarantineList)
         self.selfQuarantineRecursion(selfQuarantineList)
@@ -222,15 +222,26 @@ class Simulation:
                     if (1.0 / bankToCheck.solventNeighbors) < self.lossFraction:
                         ## find all edges of the self quarantining node
                         listOfEdges = self.graph.edges(bankToCheckID)
+                        ## of those edges, compile a list of edges that can be removed
                         validEdges = []
                         for listIndex in range(0,len(listOfEdges)):
+                            ## annoying indexing stuff...first we pick the edge in the listOfEdges
                             edge = listOfEdges[listIndex]
+                            ## then we pull out the ID of the target of the edge (to find the source, edge[0])
                             randomNeighborID = edge[1]
+                            ## we then use that ID to find the bank in the master banks list
                             randomNeighborBank = self.banks[randomNeighborID]
+                            ## then we determine if that edge should be cut (not leading to an already failed node)
                             if randomNeighborBank.status == "solvent" or randomNeighborBank.status == "exposed": validEdges.append(edge)
-                        if len(validEdges) > 0 :
+                        ## if there are edges added to the validEdges list
+                        if len(validEdges) > 0:
+                            ## then randomly select the edge to be removed
                             edgeToRemove = random.choice(validEdges)
                             ## and remove that edge from the graph
+                            ## note that here is some weird notation, an edge is a "tuple" that combines:
+                            ## ## (source node, target node, edge weight)
+                            ## Therefore, we need to "unpack" that tuple for networkX to recognize it
+                            ## Which is done with this wonky and cryptic asterisks prior to the relevant tuple
                             self.graph.remove_edge(*edgeToRemove)
                             ## increment cumulative shock for both banks by 1
                             bankToCheck.cumulativeShock += 1
@@ -239,7 +250,7 @@ class Simulation:
                             self.selfQuarantineRecursion(selfQuarantineList)
         ## if we've made it this far, the bank can no longer self quarantine, so it is removed
         if bankToCheck in selfQuarantineList: selfQuarantineList.remove(bankToCheck)
-        ## we then reshuffle the list so that the 0th index is a new bank
+        ## we then reshuffle the list so that the 0th index is a new bank [super important, on the 2nd line of actual code of this fxn]
         random.shuffle(selfQuarantineList)
-        ## recurse
+        ## recurse the shuffled list with the ineligible node removed
         self.selfQuarantineRecursion(selfQuarantineList)

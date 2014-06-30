@@ -8,14 +8,14 @@ from sim import Simulation
 numberOfNodes = 250
 powerLawAlpha = 2
 targetAssort = -0.2
-targetReplicates = 100
+targetReplicates = 1
 assortThresh = 0.01
 banks = []
 timestep = 1
-simCount = 500
+simCount = 100
 simulations = []
-capacityMultipler = 1
-shockMultiplier = 1
+capacityMultipler = .5
+shockMultiplier = .5
 selfQuarantine = True
 
 def generateNetwork():
