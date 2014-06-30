@@ -7,8 +7,8 @@ from sim import Simulation
 
 numberOfNodes = 250
 powerLawAlpha = 2
-targetAssort = -0.2
-targetReplicates = 50
+targetAssort = -0.3
+targetReplicates = 1
 assortThresh = 0.01
 banks = []
 timestep = 1
@@ -116,11 +116,12 @@ for netID in range(0, targetReplicates):
     ## set assortativity for each network
     assortativity = listsOfAssorts[netID]
 
+    ## below is 15 * 2 * 100 simulations
     for quarantine in range(0, 1):
         if quarantine == 0: selfQuarantine = False
         else: selfQuarantine = True
 
-        ## count from 10 to 50 in steps of 5
+        ## count from 10 to 75 in steps of 5
         for shockSize in range(5, 75, 5):
             ## wipe out the simulations list after each network
             simulations = []
