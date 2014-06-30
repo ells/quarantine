@@ -107,7 +107,11 @@ class Simulation:
         ## at this stage, the simulation is over, so we print the files
         ## this will likely be changed to output to files rather than print
         ## this is because printing to console is actually relatively resource intensive and can slow down sims substantially
-        print timestep, self.selfQuarantine, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
+        quarantineState = 0
+        if self.selfQuarantine == True: quarantineState = "quarantine"
+        else: quarantineState = "noQuarantine"
+
+        print timestep, quarantineState, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set
