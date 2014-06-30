@@ -7,7 +7,7 @@ from sim import Simulation
 
 numberOfNodes = 250
 powerLawAlpha = 2
-targetAssort = -0.3
+targetAssort = -0.2
 targetReplicates = 1
 assortThresh = 0.01
 banks = []
@@ -117,7 +117,7 @@ for netID in range(0, targetReplicates):
     assortativity = listsOfAssorts[netID]
 
     ## below is 15 * 2 * 100 simulations
-    for quarantine in range(0, 1):
+    for quarantine in range(0, 2):
         if quarantine == 0: selfQuarantine = False
         else: selfQuarantine = True
 
