@@ -11,3 +11,9 @@ python/sim.pyc
 python/sim.pyc
 
 *.gexf
+
+python/.idea/.name
+
+*.xml
+
+python/.idea/python.iml
