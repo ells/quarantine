@@ -16,7 +16,7 @@ simCount = 100
 simulations = []
 capacityMultipler = 0.5
 shockMultiplier = 0.5
-budget = 25
+budget = 5
 
 def generateNetwork():
     ## use a networkx function to create a degree sequence that follows a power law
