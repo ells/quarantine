@@ -3,7 +3,7 @@ from random import randint
 import networkx as nx
 
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine):
+    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -16,6 +16,7 @@ class Simulation:
         self.initialShockCount = initialShockCount
         self.lossFraction = (1.0 * self.shockSize) / self.totalCapacity
         self.selfQuarantine = selfQuarantine
+        self.budget = budget
 
     def shockBanks(self):
         totalShockSize = self.shockSize
@@ -88,6 +89,8 @@ class Simulation:
                 bank = self.banks[bankID]
                 ## kill banks that failed at last timestep
                 bank.killBank()
+                ## run global regulator function prior to status updates from propagations at last timestep
+                self.globalRegulator()
                 ## update new statuses, again, based on the last timestep's propagations
                 bank.updateStatus(timestep)
                 ## after we've updated the statuses, we check the solvency of the neighboring banks
@@ -258,3 +261,53 @@ class Simulation:
         random.shuffle(selfQuarantineList)
         ## recurse the shuffled list with the ineligible node removed
         self.selfQuarantineRecursion(selfQuarantineList)
+
+    def globalRegulator(self):
+        atRiskBanks = []
+        for bankID in range(0, len(self.banks)):
+            bank = self.banks[bankID]
+            if bank.status == "solvent" or bank.status == "exposed":
+                if bank.cumulativeShock > bank.capacity:
+                    atRiskBanks.append(bank)
+
+        impendingShock = 0
+        if len(atRiskBanks) == 0: return
+        else:
+            for atRiskBankID in range(0, len(atRiskBanks)):
+                atRiskBank = atRiskBanks[atRiskBankID]
+                liability = atRiskBank.cumulativeShock - atRiskBank.capacity
+                impendingShock += liability
+
+        if impendingShock >= self.budget: self.insufficientBudgetRegulation(atRiskBanks, impendingShock)
+        else: self.sufficientBudgetRegulation(atRiskBanks, impendingShock)
+
+
+    def sufficientBudgetRegulation(self, atRiskBanks, impendingShock):
+        for bankID in range(0, len(atRiskBanks)):
+            bankToSave = atRiskBanks[bankID]
+            budgetProvided = self.budget * ((1.0 * (bankToSave.cumulativeShock - bankToSave.capacity)) / impendingShock)
+            bankToSave.cumulativeShock -= budgetProvided
+
+    def insufficientBudgetRegulation(self, atRiskBanks, impendingShock):
+        overage = 0.10
+        atRiskBanks.sort(key=lambda x: x.capacity, reverse=True)
+        allocationK = self.budget
+
+        bailoutCandidates = []
+        for bankID in range(0, len(atRiskBanks)):
+            if allocationK == 0: break
+            bank = atRiskBanks[bankID]
+            if bank.cumulativeShock - bank.capacity < self.budget:
+                bailoutCandidates.append(bank)
+                atRiskBanks.remove(bank)
+                allocationK -= (bank.cumulativeShock - bank.capacity + (overage * bank.capacity))
+
+        for bailoutCandidateID in range(0, len(bailoutCandidates)):
+            bailedOutBank = bailoutCandidates[bailoutCandidateID]
+            recapitalization = bailedOutBank.cumulativeShock - bailedOutBank.capacity + (overage * bailedOutBank.capacity)
+            bailedOutBank.cumulativeShock -= recapitalization
+
+        self.budget -= allocationK
+
+        if self.budget > 0: atRiskBanks[0].cumulativeShock -= self.budget
+

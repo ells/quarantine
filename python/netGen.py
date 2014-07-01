@@ -7,15 +7,16 @@ from sim import Simulation
 
 numberOfNodes = 250
 powerLawAlpha = 2
-targetAssort = -0.2
+targetAssort = -0.20
 targetReplicates = 1
 assortThresh = 0.01
 banks = []
 timestep = 1
 simCount = 100
 simulations = []
-capacityMultipler = .5
-shockMultiplier = .5
+capacityMultipler = 0.5
+shockMultiplier = 0.5
+budget = 25
 
 def generateNetwork():
     ## use a networkx function to create a degree sequence that follows a power law
@@ -137,7 +138,7 @@ for netID in range(0, targetReplicates):
                     totalCapacity += banks[bankID].capacity
 
                 ## init the simulation class
-                simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine)
+                simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine, budget)
                 ## append the simulation instance to the list of simulations
                 simulations.append(simulation)
                 ## setupShocks by referencing the simulation in the list of simulations
