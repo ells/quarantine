@@ -19,7 +19,6 @@ class Simulation:
         self.budget = budget
         self.regulate = regulate
 
-
     def shockBanks(self):
         totalShockSize = self.shockSize
         currentShockSize = 0
@@ -120,9 +119,9 @@ class Simulation:
         if self.regulate == True: regulateState = "regulate"
         else: regulateState = "noRegulate"
 
-        budgetRatio = (1.0 * self.budget / self.shockSize)
+        budgetRatio = (1.0 * self.budget) / self.shockSize
 
-        print timestep, regulateState, budgetRatio, quarantineState, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
+        print timestep, regulateState, budgetRatio, quarantineState, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity), self.totalCapacity, self.capacityMultiplier, self.shockMultiplier
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set

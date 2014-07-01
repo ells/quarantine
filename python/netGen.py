@@ -8,14 +8,14 @@ from sim import Simulation
 numberOfNodes = 250
 powerLawAlpha = 2
 targetAssort = -0.20
-targetReplicates = 5
+targetReplicates = 1
 assortThresh = 0.01
 banks = []
 timestep = 1
 simCount = 100
 simulations = []
-capacityMultipler = 0.5
-shockMultiplier = 0.5
+capacityMultipler = 0.75
+shockMultiplier = 0.75
 budgetRatio = 1
 
 def generateNetwork():
@@ -48,7 +48,6 @@ def generateNetwork():
 def generateConnectedPowerLawNetwork():
     ## Use our generateNetwork function to create a sparse graph w/ power law capacities 
     graph = generateNetwork()
-
     ## there is no guarantee that the network created above is completely connected
     ## therefore, we'll keep re-making the graph until we get a fully connected one
     while nx.is_connected(graph) != True:
@@ -66,7 +65,6 @@ def generateBanks(graph):
         status = graph.node[nodeID]['status']
         insolventTimestep = graph.node[nodeID]['insolventTimestep']
         shockToPropagate = graph.node[nodeID]['shockToPropagate']
-
         ## make the bank according to those properties
         bank = Bank(bankID, capacity, cumulativeShock, solventNeighbors, status, insolventTimestep, shockToPropagate, "solvent")
         banks.append(bank)
@@ -111,7 +109,7 @@ listsOfBanks = banks_nets_lists[0]
 listsOfNetworks = banks_nets_lists[1]
 listsOfAssorts = banks_nets_lists[2]
 
-print 'timestep', 'regulate', 'budgetRatio', 'selfQuarantine', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity'
+print 'timestep', 'regulate', 'budgetRatio', 'selfQuarantine', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity', 'totalCapacity', 'capacityMultiplier', 'shockMultiplier'
 
 for netID in range(0, targetReplicates):
     ## set assortativity for each network
@@ -122,12 +120,12 @@ for netID in range(0, targetReplicates):
         if regulate == 0: regulate = False
         else: regulate = True
 
-        for quarantine in range(1, 2):
+        for quarantine in range(0, 2):
             if quarantine == 0: selfQuarantine = False
             else: selfQuarantine = True
 
             ## count from 10 to 75 in steps of 5
-            for shockSize in range(50, 750, 50):
+            for shockSize in range(5, 65, 5):
                 budget = budgetRatio * shockSize
                 ## wipe out the simulations list after each network
                 simulations = []
