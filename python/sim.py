@@ -3,7 +3,7 @@ from random import randint
 import networkx as nx
 
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget):
+    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget, regulate):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -17,6 +17,8 @@ class Simulation:
         self.lossFraction = (1.0 * self.shockSize) / self.totalCapacity
         self.selfQuarantine = selfQuarantine
         self.budget = budget
+        self.regulate = regulate
+
 
     def shockBanks(self):
         totalShockSize = self.shockSize
@@ -89,8 +91,8 @@ class Simulation:
                 bank = self.banks[bankID]
                 ## kill banks that failed at last timestep
                 bank.killBank()
-                ## run global regulator function prior to status updates from propagations at last timestep
-                self.globalRegulator()
+                ## if self.regulate is on, run global regulator function prior to status updates from propagation at last timestep
+                if self.regulate == True: self.globalRegulator()
                 ## update new statuses, again, based on the last timestep's propagations
                 bank.updateStatus(timestep)
                 ## after we've updated the statuses, we check the solvency of the neighboring banks
@@ -114,7 +116,13 @@ class Simulation:
         if self.selfQuarantine == True: quarantineState = "quarantine"
         else: quarantineState = "noQuarantine"
 
-        print timestep, quarantineState, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
+        regulateState = 0
+        if self.regulate == True: regulateState = "regulate"
+        else: regulateState = "noRegulate"
+
+        budgetRatio = (1.0 * self.budget / self.shockSize)
+
+        print timestep, regulateState, budgetRatio, quarantineState, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity)
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set
