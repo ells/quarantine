@@ -297,7 +297,7 @@ class Simulation:
         for bankID in range(0, len(atRiskBanks)):
             if allocationK == 0: return
             bank = atRiskBanks[bankID]
-            if bank.cumulativeShock - bank.capacity < self.budget:
+            if bank.cumulativeShock - bank.capacity + (overage * bank.capacity) < self.budget:
                 bailoutCandidates.append(bank)
                 allocationK -= (bank.cumulativeShock - bank.capacity + (overage * bank.capacity))
 
