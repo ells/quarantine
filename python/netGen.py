@@ -5,18 +5,19 @@ import copy as cp
 from bank import Bank
 from sim import Simulation
 
-numberOfNodes = 250
-powerLawAlpha = 2
-targetAssort = -0.20
-targetReplicates = 1
-assortThresh = 0.01
 banks = []
+simulations = []
 timestep = 1
 simCount = 100
-simulations = []
 capacityMultipler = 0.75
 shockMultiplier = 0.75
 budgetRatio = 0.75
+targetAssort = -0.20
+assortThresh = 0.01
+numberOfNodes = 250
+powerLawAlpha = 2
+targetReplicates = 1
+
 
 def generateNetwork():
     ## use a networkx function to create a degree sequence that follows a power law
@@ -123,7 +124,7 @@ for netID in range(0, targetReplicates):
     ## 4
     for selfQuarantineCost in range (2, 6, 1):
         selfQuarantineCostMultiplier = (1.0 * selfQuarantineCost) / 2
-        
+
 
         ## 2
         for regulate in range(0, 2):
