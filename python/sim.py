@@ -3,7 +3,7 @@ from random import randint
 import networkx as nx
 
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget, regulate):
+    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget, regulate, selfQuarantineCostMultiplier, outputFile):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -18,6 +18,8 @@ class Simulation:
         self.selfQuarantine = selfQuarantine
         self.budget = budget
         self.regulate = regulate
+        self.selfQuarantineCostMultiplier = selfQuarantineCostMultiplier
+        self.outputFile = outputFile
 
     def shockBanks(self):
         totalShockSize = self.shockSize
@@ -121,7 +123,10 @@ class Simulation:
 
         budgetRatio = (1.0 * self.budget) / self.shockSize
 
-        print timestep, regulateState, budgetRatio, quarantineState, shockSize, self.initialShockCount, self.countDead(), '{0:.4g}'.format(self.lossFraction), '{0:.4g}'.format(self.assortativity), self.totalCapacity, self.capacityMultiplier, self.shockMultiplier
+        outputString = str(timestep) + "\t" + str(regulateState) + "\t" + str(budgetRatio) + "\t" + str(quarantineState) + "\t" + str(shockSize) + "\t" + str(self.initialShockCount) + "\t" + str(self.countDead()) + "\t" + str('{0:.4g}'.format(self.lossFraction)) + "\t" + str('{0:.4g}'.format(self.assortativity)) + "\t" + str(self.totalCapacity) + "\t" + str(self.capacityMultiplier) + "\t" + str(self.shockMultiplier) + "\t" + str(self.selfQuarantineCostMultiplier)
+        print outputString
+        self.outputFile.write(outputString)
+        self.outputFile.write("\n")
 
         ## this is the output command to write the networkx graph to a gephi-specific readable format (super handy software for figures and data exploration)
         ## note that this will overwrite each time because the filename is not dynamically set
@@ -219,7 +224,7 @@ class Simulation:
                 ## and the remaining capacity > 1
                 if bank.capacity - bank.cumulativeShock > 1:
                     ## and if the inverse connectedness is less than the loss fraction
-                    if (1.0 / bank.solventNeighbors) < self.lossFraction:
+                    if ((self.selfQuarantineCostMultiplier * 1.0) / bank.solventNeighbors) < self.lossFraction:
                         selfQuarantineList.append(bank)
         return selfQuarantineList
 
@@ -233,7 +238,7 @@ class Simulation:
                 ## and the remaining capacity > 1
                 if bankToCheck.capacity - bankToCheck.cumulativeShock > 1:
                     ## and if the inverse connectedness is less than the loss fraction
-                    if (1.0 / bankToCheck.solventNeighbors) < self.lossFraction:
+                    if ((self.selfQuarantineCostMultiplier *1.0) / bankToCheck.solventNeighbors) < self.lossFraction:
                         ## find all edges of the self quarantining node
                         listOfEdges = self.graph.edges(bankToCheckID)
                         ## of those edges, compile a list of edges that can be removed
@@ -258,8 +263,8 @@ class Simulation:
                             ## Which is done with this wonky and cryptic asterisks prior to the relevant tuple
                             self.graph.remove_edge(*edgeToRemove)
                             ## increment cumulative shock for both banks by 1
-                            bankToCheck.cumulativeShock += 1
-                            randomNeighborBank.cumulativeShock += 1
+                            bankToCheck.cumulativeShock += 1 * self.selfQuarantineCostMultiplier
+                            randomNeighborBank.cumulativeShock += 1 #do NOT add cost multiplier
                             ## recurse, but do NOT shuffle the list so that we can reconsider it until its ineligible for self-quarantine
                             self.selfQuarantineRecursion(selfQuarantineList)
         ## if we've made it this far, the bank can no longer self quarantine, so it is removed

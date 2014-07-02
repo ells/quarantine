@@ -16,7 +16,7 @@ simCount = 100
 simulations = []
 capacityMultipler = 0.75
 shockMultiplier = 0.75
-budgetRatio = 1
+budgetRatio = 0.75
 
 def generateNetwork():
     ## use a networkx function to create a degree sequence that follows a power law
@@ -109,44 +109,54 @@ listsOfBanks = banks_nets_lists[0]
 listsOfNetworks = banks_nets_lists[1]
 listsOfAssorts = banks_nets_lists[2]
 
-print 'timestep', 'regulate', 'budgetRatio', 'selfQuarantine', 'shockSize', 'shockCount', 'failedBanks', 'lostCapacity', 'assortativity', 'totalCapacity', 'capacityMultiplier', 'shockMultiplier'
+outputFile = open("results.txt", 'w')
+headerString = 'timestep\tregulate\tbudgetRatio\tselfQuarantine\tshockSize\tshockCount\tfailedBanks\tlostCapacity\tassortativity\ttotalCapacity\tcapacityMultiplier\tshockMultiplier\tselfQuarantineCostMultiplier'
+print headerString
+outputFile.write(headerString)
+outputFile.write("\n")
+
 
 for netID in range(0, targetReplicates):
     ## set assortativity for each network
     assortativity = listsOfAssorts[netID]
 
-    ## below is (shockSizes * 2 * 2 * simCount) simulations (e.g., 15 x 2 x 2 x 100 = 6k)
-    for regulate in range(0, 2):
-        if regulate == 0: regulate = False
-        else: regulate = True
+    ## 4
+    for selfQuarantineCost in range (2, 6, 1):
+        selfQuarantineCostMultiplier = (1.0 * selfQuarantineCost) / 2
+        
 
-        for quarantine in range(0, 2):
-            if quarantine == 0: selfQuarantine = False
-            else: selfQuarantine = True
+        ## 2
+        for regulate in range(0, 2):
+            if regulate == 0: regulate = False
+            else: regulate = True
+            ## 2
+            for quarantine in range(0, 2):
+                if quarantine == 0: selfQuarantine = False
+                else: selfQuarantine = True
+                ## 15
+                ## count from 10 to 75 in steps of 5
+                for shockSize in range(5, 80, 5):
+                    budget = budgetRatio * shockSize
+                    ## wipe out the simulations list after each network
+                    simulations = []
+                    ## run sims!
+                    for simID in range(0, simCount):
+                        timestep = 1
+                        ## make copies of banks and nets so they don't change
+                        banks = cp.deepcopy(listsOfBanks[netID])
+                        network = cp.deepcopy(listsOfNetworks[netID])
+                        ## count of the total capacity of the financial network
+                        totalCapacity = 0
+                        for bankID in range(0, len(banks)):
+                            totalCapacity += banks[bankID].capacity
 
-            ## count from 10 to 75 in steps of 5
-            for shockSize in range(5, 65, 5):
-                budget = budgetRatio * shockSize
-                ## wipe out the simulations list after each network
-                simulations = []
-                ## run sims!
-                for simID in range(0, simCount):
-                    timestep = 1
-                    ## make copies of banks and nets so they don't change
-                    banks = cp.deepcopy(listsOfBanks[netID])
-                    network = cp.deepcopy(listsOfNetworks[netID])
-                    ## count of the total capacity of the financial network
-                    totalCapacity = 0
-                    for bankID in range(0, len(banks)):
-                        totalCapacity += banks[bankID].capacity
+                        ## init the simulation class
+                        simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine, budget, regulate, selfQuarantineCostMultiplier, outputFile)
+                        ## append the simulation instance to the list of simulations
+                        simulations.append(simulation)
+                        ## setupShocks by referencing the simulation in the list of simulations
+                        simulations[simID].shockBanks()
+                        ## run timeteps by referencing the simulation in the list of simulations
+                        simulations[simID].runTimesteps(timestep)
 
-                    ## init the simulation class
-                    simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine, budget, regulate)
-                    ## append the simulation instance to the list of simulations
-                    simulations.append(simulation)
-                    ## setupShocks by referencing the simulation in the list of simulations
-                    simulations[simID].shockBanks()
-                    ## run timeteps by referencing the simulation in the list of simulations
-                    simulations[simID].runTimesteps(timestep)
-
-
+outputFile.close()
