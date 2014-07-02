@@ -4,6 +4,7 @@ import numpy as np
 import copy as cp
 from bank import Bank
 from sim import Simulation
+from datetime import datetime
 
 banks = []
 simulations = []
@@ -110,7 +111,8 @@ listsOfBanks = banks_nets_lists[0]
 listsOfNetworks = banks_nets_lists[1]
 listsOfAssorts = banks_nets_lists[2]
 
-outputFile = open("results.txt", 'w')
+outputFileString ="results" + datetime.now().strftime('%H_%M_%S') + ".txt"
+outputFile = open(outputFileString, 'w')
 headerString = 'timestep\tregulate\tbudgetRatio\tselfQuarantine\tshockSize\tshockCount\tfailedBanks\tlostCapacity\tassortativity\ttotalCapacity\tcapacityMultiplier\tshockMultiplier\tselfQuarantineCostMultiplier'
 print headerString
 outputFile.write(headerString)
