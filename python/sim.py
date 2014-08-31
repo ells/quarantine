@@ -3,7 +3,7 @@ from random import randint
 import networkx as nx
 
 class Simulation:
-    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget, regulate, selfQuarantineCostMultiplier, outputFile):
+    def __init__(self, id, banks, graph, shockSize, timestep, assortativity, totalCapacity, capacityMultiplier, shockMultiplier, initialShockCount, lossFraction, selfQuarantine, budget, regulate, selfQuarantineCostMultiplier, imperfect, outputFile):
         self.id = id
         self.banks = banks
         self.graph = graph
@@ -15,11 +15,22 @@ class Simulation:
         self.shockMultiplier = shockMultiplier
         self.initialShockCount = initialShockCount
         self.lossFraction = (1.0 * self.shockSize) / self.totalCapacity
+        ## regulation booleans
         self.selfQuarantine = selfQuarantine
-        self.budget = budget
         self.regulate = regulate
+        self.imperfect = imperfect
+        ## budget and multipliers
+        self.budget = budget
         self.selfQuarantineCostMultiplier = selfQuarantineCostMultiplier
+        ## imperfect knowledge
+        self.smallBankMeanDegreeEstimate = 0
+        self.estimatedShock = 0
+        self.imperfectSnapshot = nx.Graph()
+        self.topBanks = []
+        self.smallBanks = []
+        ## file output
         self.outputFile = outputFile
+
 
     def shockBanks(self):
         totalShockSize = self.shockSize
@@ -86,6 +97,7 @@ class Simulation:
         ## this effectively says : while(true) enter the timestep loop
         ## when the stop conditions are met (see sim.running() below) it reads: while(false) and exits the loop
         while self.running(timestep):
+            self.initImperfectKnowledge()
             ## first we loop through all the banks
             for bankID in range(0, len(self.banks)):
                 ## set the bank in question based on the master banks list
@@ -93,9 +105,13 @@ class Simulation:
                 ## kill banks that failed at last timestep
                 bank.killBank()
                 ## if self.regulate is on, run global regulator function prior to status updates from propagation at last timestep
-                if self.regulate == True: self.globalRegulator()
+                if self.regulate and self.imperfect == False: self.globalRegulator()
                 ## update new statuses, again, based on the last timestep's propagations
                 bank.updateStatus(timestep)
+
+                ## insert imperfect regulation
+                if self.regulate and self.imperfect: self.imperfectRegulation()
+
                 ## after we've updated the statuses, we check the solvency of the neighboring banks
                 bank.updateSolventNeighbors(self.graph, self.banks)
                 ## now that we know how many neighbors the bank can spread to, we check calculate that banks shock size
@@ -121,9 +137,14 @@ class Simulation:
         if self.regulate == True: regulateState = "regulate"
         else: regulateState = "noRegulate"
 
+        imperfect = 0
+        if self.imperfect: imperfect = "imperfect"
+        else: imperfect = "perfect"
+
+
         budgetRatio = (1.0 * self.budget) / self.shockSize
 
-        outputString = str(timestep) + "\t" + str(regulateState) + "\t" + str(budgetRatio) + "\t" + str(quarantineState) + "\t" + str(shockSize) + "\t" + str(self.initialShockCount) + "\t" + str(self.countDead()) + "\t" + str('{0:.4g}'.format(self.lossFraction)) + "\t" + str('{0:.4g}'.format(self.assortativity)) + "\t" + str(self.totalCapacity) + "\t" + str(self.capacityMultiplier) + "\t" + str(self.shockMultiplier) + "\t" + str(self.selfQuarantineCostMultiplier)
+        outputString = str(timestep) + "\t" + str(imperfect) + "\t" + str(regulateState) + "\t" + str(budgetRatio) + "\t" + str(quarantineState) + "\t" + str(shockSize) + "\t" + str(self.initialShockCount) + "\t" + str(self.countDead()) + "\t" + str('{0:.4g}'.format(self.lossFraction)) + "\t" + str('{0:.4g}'.format(self.assortativity)) + "\t" + str(self.totalCapacity) + "\t" + str(self.capacityMultiplier) + "\t" + str(self.shockMultiplier) + "\t" + str(self.selfQuarantineCostMultiplier)
         print outputString
         self.outputFile.write(outputString)
         self.outputFile.write("\n")
@@ -274,6 +295,11 @@ class Simulation:
         ## recurse the shuffled list with the ineligible node removed
         self.selfQuarantineRecursion(selfQuarantineList)
 
+
+
+
+
+    ## PERFECT REGULATOR
     def globalRegulator(self):
         atRiskBanks = []
         for bankID in range(0, len(self.banks)):
@@ -321,4 +347,167 @@ class Simulation:
         self.budget -= allocationK
 
         if self.budget > 0: atRiskBanks[0].cumulativeShock -= self.budget
+
+
+
+
+    ## IMPERFECT REGULATOR
+    def imperfectRegulation(self):
+        ## we now have a prioritized list of tuples that contain [topBank, potentialRisk]
+        prioritizedAtRiskTopBanks = self.monitorBanks()
+        for tupleIndex in range(0, len(prioritizedAtRiskTopBanks)):
+            ## indexes for the bank object and potentialShock value that is housed in the prioritized tuple
+            bankIndex = 0
+            potentialShockIndex = 1
+            ## bailout candidate object, potentialRisk, and cost to save stored as a variables
+            topBailoutCandidate = prioritizedAtRiskTopBanks[tupleIndex][bankIndex]
+            potentialShock = prioritizedAtRiskTopBanks[tupleIndex][potentialShockIndex]
+            costToBailout = topBailoutCandidate.capacity - topBailoutCandidate.cumulativeShock + self.shockMultiplier(potentialShock)
+            ## if we ever run out of budget, we'll step back into the timestep loop
+            if self.budget == 0: return
+            ## otherwise, if some budget is left, we'll try to save as many as possible
+            ## while allowing banks that are "too far gone" to go bankrupt
+            ## ## this is done in hopes that we'll find a bank to save within our budget
+            if self.budget >= costToBailout:
+                topBailoutCandidate.capacity += costToBailout
+                self.budget -= costToBailout
+
+        ## if there is any budget remaining, we'll give the rest to the largest bank
+        ## this ensure that we're optimizing within the given budget
+        ## and that our outcomes are comparable according to budget allocation
+        self.disburseRemainingBudget()
+
+    def disburseRemainingBudget(self):
+        rankedBanks = sorted(self.banks, key=lambda x: x.capacity)
+
+        self.banks[rankedBanks[0].id].capacity += self.budget
+
+    def monitorBanks(self):
+        dangerThreshold = 1
+        atRiskTopBanks = []
+        ## first we loop through the ranked list of top banks
+        for topBankIndex in range(0, len(self.topBanks)):
+            topBankID = self.topBanks[topBankIndex].id
+            topBank = self.banks[topBankID]
+            topBankNeighbors = self.imperfectSnapshot.neighbors(topBank)
+            failedNeighborCount = 0
+            ## find all of the neighbors of the top bank
+            for neighborIndex in range(0, len(topBankNeighbors)):
+                topBankNeighbor = topBankNeighbors[neighborIndex]
+                ## count all failed surrounding banks
+                if topBankNeighbor.status == "fail": failedNeighborCount += 1
+            ## if the number of failed surrounding banks meets threshold, then consider it at risk
+            if failedNeighborCount >= dangerThreshold: atRiskTopBanks.append(topBank)
+
+        prePrioritizedList = []
+        ## Now that we know all of the top banks that are at risk, we'll figure out how to prioritize
+        for atRiskTopBankIndex in range(0, len(atRiskTopBanks)):
+            atRiskTopBank = self.topBanks[atRiskTopBankIndex]
+            atRiskTopBankNeighbors = self.graph.neighbors(self.graph.node(atRiskTopBank))
+
+            potentialRisk = 0
+            ## loop through all neighbors of the atRiskTopBank
+            for neighborIndex in range(0, len(atRiskTopBankNeighbors)):
+                atRiskTopBankNeighbor = atRiskTopBankNeighbors[neighborIndex]
+                ## if that neighbor has failed and is considered a small bank
+                if atRiskTopBankNeighbor.status == "fail" and self.smallBanks.__contains__(atRiskTopBankNeighbor):
+                    ## then add the estimated capacity to potentialRisk
+                    potentialRisk += self.smallBankMeanDegreeEstimate
+                ## if its a large bank
+                if atRiskTopBankNeighbor.status == "fail" and self.topBanks.__contains__(atRiskTopBankNeighbor):
+                    ## then add the known shock to potentialRisk
+                    potentialRisk += atRiskTopBankNeighbor.cumulativeShock
+
+            potentialRiskTuple = (atRiskTopBank, potentialRisk)
+            prePrioritizedList.append(potentialRiskTuple)
+
+        ## now we rank that list of tuples to prioritize, we'll do that by the potentialRisk value in tuple always indexed at potentialRiskTuple[i][1]
+        ## note that sorted() modifies the list "in-place" so it will re-order by the keyed index we give it
+        return sorted(prePrioritizedList, key=lambda x: x[1])
+
+    def initImperfectKnowledge(self):
+        self.topBanks = self.rankBanks(10)
+        self.imperfectSnapshot = self.generateImperfectSnapshot()
+        self.estimatedShock = 0
+        self.smallBankMeanDegreeEstimate = self.estimateSmallBankDegree()
+
+    def generateImperfectSnapshot(self):
+        ## first we add all the top banks to a temporary graph
+        snapshotSize = 0
+        for rankedIndex in range(0, len(self.topBanks)):
+            topBank = self.banks[rankedIndex]
+            self.imperfectSnapshot.add_node(topBank)
+            snapshotSize += 1
+
+            ## then we'll add all of its neighbors
+            topBankNeighbors = self.graph.neighbors(topBank.id)
+            for topBankNeighborIndex in range(0, len(topBankNeighbors)):
+                topBankNeighborID = topBankNeighbors[topBankNeighborIndex]
+                topBankNeighbor = self.banks[topBankNeighborID]
+                ## we must be careful to not duplicate neighbors of already-added topBanks
+                if self.imperfectSnapshot.__contains__(topBankNeighbor): continue
+                else:
+                    ## add the neighbor node
+                    self.imperfectSnapshot.add_node(topBankNeighbor)
+                    snapshotSize += 1
+
+        nodeList = list(self.imperfectSnapshot.nodes())
+        for i in range(0, len(self.topBanks)):
+            if nodeList.__contains__(self.topBanks[i]): continue
+            else: self.imperfectSnapshot.add_node(self.topBanks[i])
+
+        ## now that we have all of the top banks and their neighbors added
+        ## let's connected them as they were in the original graph
+        ## first we make a list of all edges in the original graph
+        edgeList = list(self.graph.edges_iter())
+        ## then we loop over all potential edges
+        for edgeIndex in range(0, len(edgeList)):
+            ## and store that edge to a variable
+            edge = edgeList[edgeIndex]
+            ## if our temporary network contains both the source and target of that edge
+            if self.imperfectSnapshot.__contains__(edge[0]) and self.imperfectSnapshot.__contains__(edge[1]):
+                ## then add the edge to the temporary network, note the tuple unpacking asterisks character
+                self.imperfectSnapshot.add_edge(*edge)
+
+
+
+        return self.imperfectSnapshot
+
+    def rankBanks(self, value):
+        topBanks = []
+        rankedBanks = sorted(self.banks, key=lambda x: x.capacity)
+
+        if value < 1:
+            for rankedIndex in range(0, len(rankedBanks)):
+                topBanks.append(rankedBanks[rankedIndex])
+                currentProportion = 1.0 * len(topBanks) / len(rankedBanks)
+                if currentProportion >= value: return topBanks
+        else:
+            for rankedIndex in range(0, value):
+                topBanks.append(rankedBanks[rankedIndex])
+            return topBanks
+
+
+    def estimateSmallBankDegree(self):
+        smallBankDegreeSum = 0
+        for bankIndex in range(0, len(self.banks)):
+            bank = self.banks[bankIndex]
+            if self.topBanks.__contains__(bank): continue
+            else:
+                self.smallBanks.append(bank)
+                smallBankDegreeSum += bank.capacity
+        smallBankMeanDegree = (1.0 * smallBankDegreeSum) / len(self.smallBanks)
+        return smallBankMeanDegree
+
+
+
+
+
+
+
+
+
+
+
+
 

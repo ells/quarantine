@@ -5,30 +5,48 @@ require(grid)
 ## import this file as a dataframe and name it "data"
 ## If you're using pyCharm, you'll need to remove the very first and last lines of the output after cut & paste
 
-
 ## shockSize vs lostCapacity
-base = ggplot(data, aes(x=shockSize, y=lostCapacity))
-points = base + geom_point(aes(size=shockCount, color=selfQuarantine), alpha=0.25)
-smooth = points + geom_smooth(aes(color=selfQuarantine))
-labeled = smooth + labs(title="Self Quarantine", x="Shock Size", y="Capacity Loss")
-facets = labeled + facet_grid(.~assortativity)
+base = ggplot(budgetRatio, aes(x=shockSize, y=lostCapacity))
+points = base + geom_point(aes(size=shockCount, color=interaction(regulate, selfQuarantine)), alpha=0.25)
+labeled = points + labs(title="Self Quarantine", x="Shock Size", y="Capacity Loss")
+themed = labeled + theme_bw() + theme(legend.position="bottom")
+themed
+
+## timestep vs shockCount
+base = ggplot(exploreMultiplier, aes(x=timestep, y=lostCapacity))
+points = base + geom_point(aes(size=shockCount, color=interaction(selfQuarantine, regulate)))
+smooth = points + geom_smooth(aes(color=interaction(selfQuarantine, regulate)))
+labeled = smooth + labs(title="Self Quarantine", x="Duration", y="Lost Capacity")
+themed = labeled + theme_bw() + theme(legend.position="bottom")
+themed
+
+## shockSize vs shockCount
+base = ggplot(budgetRatio, aes(x=shockCount, y=shockSize))
+points = base + geom_point(aes(size=lostCapacity, color=interaction(selfQuarantine, regulate)), alpha=0.25)
+smooth = points + geom_smooth(aes(color=interaction(selfQuarantine, regulate)))
+labeled = smooth + labs(title="Self Quarantine", x="Shock Count", y="Shock Size")
+facets = labeled + facet_grid(.~budgetRatio)
 themed = facets + theme_bw() + theme(legend.position="bottom")
 themed
 
 ## shockSize vs shockCount
-base = ggplot(data, aes(x=shockSize, y=shockCount))
-points = base + geom_point(aes(size=lostCapacity, color=selfQuarantine), alpha=0.25)
-smooth = points + geom_smooth(aes(group=selfQuarantine))
-labeled = smooth + labs(title="Self Quarantine", x="Shock Size", y="Shock Count")
-facets = labeled + facet_grid(.~assortativity)
+base = ggplot(budgetRatio, aes(x=shockCount, y=lostCapacity))
+points = base + geom_point(aes(size=shockSize, color=interaction(selfQuarantine, regulate)), alpha=0.0)
+smooth = points + geom_smooth(aes(color=interaction(selfQuarantine, regulate)))
+labeled = smooth + labs(title="Budget Ratios", x="Shock Count", y="Lost Capacity")
+facets = labeled + facet_grid(.~budgetRatio)
 themed = facets + theme_bw() + theme(legend.position="bottom")
 themed
 
+
+
+
+
 ## shockCount vs lostCapacity
-base = ggplot(data, aes(x=shockCount,y=lostCapacity))
-points = base + geom_point(aes(size=shockSize, color=selfQuarantine), alpha=0.5)
-smooth = points + geom_smooth(aes(group=selfQuarantine))
+base = ggplot(budgetRatio, aes(x=shockCount,y=lostCapacity))
+points = base + geom_point(aes(size=shockSize, color=interaction(selfQuarantine, regulate)), alpha=0.5)
+smooth = points + geom_smooth(aes(group=interaction(selfQuarantine, regulate)))
 labeled = smooth + labs(title="Self Quarantine", x="Shock Count", y="Capacity Loss")
-facets = labeled + facet_grid(.~assortativity)
+facets = labeled + facet_grid(.~budgetRatio)
 themed = facets + theme_bw() + theme(legend.position="bottom")
 themed
