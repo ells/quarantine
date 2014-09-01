@@ -6,11 +6,12 @@ require(grid)
 ## If you're using pyCharm, you'll need to remove the very first and last lines of the output after cut & paste
 
 ## shockSize vs lostCapacity
-base = ggplot(budgetRatio, aes(x=shockSize, y=lostCapacity))
-points = base + geom_point(aes(size=shockCount, color=interaction(regulate, selfQuarantine)), alpha=0.25)
+base = ggplot(imperfect, aes(x=shockSize, y=lostCapacity))
+points = base + geom_point(aes(size=shockCount,color=knowledgeState, alpha=1))
 labeled = points + labs(title="Self Quarantine", x="Shock Size", y="Capacity Loss")
 themed = labeled + theme_bw() + theme(legend.position="bottom")
-themed
+faceted = themed + facet_grid(selfQuarantine~regulate)
+faceted
 
 ## timestep vs shockCount
 base = ggplot(exploreMultiplier, aes(x=timestep, y=lostCapacity))

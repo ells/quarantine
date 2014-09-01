@@ -127,43 +127,34 @@ for netID in range(0, targetReplicates):
     ## 4
     for selfQuarantineCost in range (2, 3, 1):
         selfQuarantineCostMultiplier = (1.0 * selfQuarantineCost) / 2
-
-
-        ## 2
-        for regulate in range(0, 2):
+        for regulate in range(0, 2): # ON ALWAYS
             if regulate == 0: regulate = False
             else: regulate = True
-            ## 2
-            for imperfect in range(0, 2):
-                if imperfect == 0: imperfect = False
-                else: imperfect = True
-                for quarantine in range(1, 2):
-                    if quarantine == 0: selfQuarantine = False
-                    else: selfQuarantine = True
-                    ## 15
-                    ## count from 10 to 75 in steps of 5
-                    for shockSize in range(50, 300, 50):
-                        budget = budgetRatio * shockSize
-                        ## wipe out the simulations list after each network
-                        simulations = []
-                        ## run sims!
-                        for simID in range(0, simCount):
-                            timestep = 1
-                            ## make copies of banks and nets so they don't change
-                            banks = cp.deepcopy(listsOfBanks[netID])
-                            network = cp.deepcopy(listsOfNetworks[netID])
-                            ## count of the total capacity of the financial network
-                            totalCapacity = 0
-                            for bankID in range(0, len(banks)):
-                                totalCapacity += banks[bankID].capacity
-
-                            ## init the simulation class
-                            simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine, budget, regulate, selfQuarantineCostMultiplier, imperfect, outputFile)
-                            ## append the simulation instance to the list of simulations
-                            simulations.append(simulation)
-                            ## setupShocks by referencing the simulation in the list of simulations
-                            simulations[simID].shockBanks()
-                            ## run timeteps by referencing the simulation in the list of simulations
-                            simulations[simID].runTimesteps(timestep)
+            for quarantine in range(0, 2):
+                if quarantine == 0: selfQuarantine = False
+                else: selfQuarantine = True
+                ## count from 10 to 75 in steps of 5
+                for shockSize in range(50, 600, 50):
+                    budget = budgetRatio * shockSize
+                    ## wipe out the simulations list after each network
+                    simulations = []
+                    ## run sims!
+                    for simID in range(0, simCount):
+                        timestep = 1
+                        ## make copies of banks and nets so they don't change
+                        banks = cp.deepcopy(listsOfBanks[netID])
+                        network = cp.deepcopy(listsOfNetworks[netID])
+                        ## count of the total capacity of the financial network
+                        totalCapacity = 0
+                        for bankID in range(0, len(banks)):
+                            totalCapacity += banks[bankID].capacity
+                        ## init the simulation class
+                        simulation = Simulation(id, banks, network, shockSize, timestep, assortativity, totalCapacity, capacityMultipler, shockMultiplier, 0, 0, selfQuarantine, budget, regulate, selfQuarantineCostMultiplier, imperfect, outputFile)
+                        ## append the simulation instance to the list of simulations
+                        simulations.append(simulation)
+                        ## setupShocks by referencing the simulation in the list of simulations
+                        simulations[simID].shockBanks()
+                        ## run timeteps by referencing the simulation in the list of simulations
+                        simulations[simID].runTimesteps(timestep)
 
 outputFile.close()

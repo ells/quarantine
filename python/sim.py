@@ -1,5 +1,6 @@
 import random
 from random import randint
+from copy import deepcopy
 import networkx as nx
 
 class Simulation:
@@ -28,6 +29,7 @@ class Simulation:
         self.imperfectSnapshot = nx.Graph()
         self.topBanks = []
         self.smallBanks = []
+        self.budgetSpent = 0
         ## file output
         self.outputFile = outputFile
 
@@ -349,10 +351,11 @@ class Simulation:
         if self.budget > 0: atRiskBanks[0].cumulativeShock -= self.budget
 
 
-
-
     ## IMPERFECT REGULATOR
     def imperfectRegulation(self):
+        if self.budget <= 1:
+            self.disburseRemainingBudget()
+            return
         ## we now have a prioritized list of tuples that contain [topBank, potentialRisk]
         prioritizedAtRiskTopBanks = self.monitorBanks()
         for tupleIndex in range(0, len(prioritizedAtRiskTopBanks)):
@@ -362,15 +365,16 @@ class Simulation:
             ## bailout candidate object, potentialRisk, and cost to save stored as a variables
             topBailoutCandidate = prioritizedAtRiskTopBanks[tupleIndex][bankIndex]
             potentialShock = prioritizedAtRiskTopBanks[tupleIndex][potentialShockIndex]
-            costToBailout = topBailoutCandidate.capacity - topBailoutCandidate.cumulativeShock + self.shockMultiplier(potentialShock)
+            costToBailout = topBailoutCandidate.capacity - topBailoutCandidate.cumulativeShock + self.shockMultiplier* potentialShock
+            if costToBailout < 0: return
             ## if we ever run out of budget, we'll step back into the timestep loop
-            if self.budget == 0: return
             ## otherwise, if some budget is left, we'll try to save as many as possible
             ## while allowing banks that are "too far gone" to go bankrupt
             ## ## this is done in hopes that we'll find a bank to save within our budget
             if self.budget >= costToBailout:
                 topBailoutCandidate.capacity += costToBailout
                 self.budget -= costToBailout
+                self.budgetSpent += costToBailout
 
         ## if there is any budget remaining, we'll give the rest to the largest bank
         ## this ensure that we're optimizing within the given budget
@@ -389,26 +393,32 @@ class Simulation:
         for topBankIndex in range(0, len(self.topBanks)):
             topBankID = self.topBanks[topBankIndex].id
             topBank = self.banks[topBankID]
-            topBankNeighbors = self.imperfectSnapshot.neighbors(topBank)
+
+
+            topBankNeighbors = self.graph.neighbors(topBank.id)
+
             failedNeighborCount = 0
             ## find all of the neighbors of the top bank
             for neighborIndex in range(0, len(topBankNeighbors)):
-                topBankNeighbor = topBankNeighbors[neighborIndex]
+                topBankNeighbor = self.banks[topBankNeighbors[neighborIndex]]
                 ## count all failed surrounding banks
                 if topBankNeighbor.status == "fail": failedNeighborCount += 1
             ## if the number of failed surrounding banks meets threshold, then consider it at risk
             if failedNeighborCount >= dangerThreshold: atRiskTopBanks.append(topBank)
+            # print topBank.id, topBank.capacity, failedNeighborCount
+
 
         prePrioritizedList = []
+
         ## Now that we know all of the top banks that are at risk, we'll figure out how to prioritize
         for atRiskTopBankIndex in range(0, len(atRiskTopBanks)):
-            atRiskTopBank = self.topBanks[atRiskTopBankIndex]
-            atRiskTopBankNeighbors = self.graph.neighbors(self.graph.node(atRiskTopBank))
+            atRiskTopBank = atRiskTopBanks[atRiskTopBankIndex]
+            atRiskTopBankNeighbors = self.graph.neighbors(atRiskTopBank.id)
 
             potentialRisk = 0
             ## loop through all neighbors of the atRiskTopBank
             for neighborIndex in range(0, len(atRiskTopBankNeighbors)):
-                atRiskTopBankNeighbor = atRiskTopBankNeighbors[neighborIndex]
+                atRiskTopBankNeighbor = self.banks[atRiskTopBankNeighbors[neighborIndex]]
                 ## if that neighbor has failed and is considered a small bank
                 if atRiskTopBankNeighbor.status == "fail" and self.smallBanks.__contains__(atRiskTopBankNeighbor):
                     ## then add the estimated capacity to potentialRisk
@@ -420,6 +430,7 @@ class Simulation:
 
             potentialRiskTuple = (atRiskTopBank, potentialRisk)
             prePrioritizedList.append(potentialRiskTuple)
+
 
         ## now we rank that list of tuples to prioritize, we'll do that by the potentialRisk value in tuple always indexed at potentialRiskTuple[i][1]
         ## note that sorted() modifies the list "in-place" so it will re-order by the keyed index we give it
@@ -435,8 +446,9 @@ class Simulation:
         ## first we add all the top banks to a temporary graph
         snapshotSize = 0
         for rankedIndex in range(0, len(self.topBanks)):
-            topBank = self.banks[rankedIndex]
-            self.imperfectSnapshot.add_node(topBank)
+            topBank = self.topBanks[rankedIndex]
+            topBankInBanks = self.banks[topBank.id]
+            self.imperfectSnapshot.add_node(topBankInBanks)
             snapshotSize += 1
 
             ## then we'll add all of its neighbors
@@ -469,13 +481,12 @@ class Simulation:
                 ## then add the edge to the temporary network, note the tuple unpacking asterisks character
                 self.imperfectSnapshot.add_edge(*edge)
 
-
-
         return self.imperfectSnapshot
 
     def rankBanks(self, value):
         topBanks = []
-        rankedBanks = sorted(self.banks, key=lambda x: x.capacity)
+        rankedBanks = deepcopy(self.banks)
+        rankedBanks.sort(key=lambda x: x.capacity, reverse=True)
 
         if value < 1:
             for rankedIndex in range(0, len(rankedBanks)):
@@ -486,7 +497,6 @@ class Simulation:
             for rankedIndex in range(0, value):
                 topBanks.append(rankedBanks[rankedIndex])
             return topBanks
-
 
     def estimateSmallBankDegree(self):
         smallBankDegreeSum = 0
