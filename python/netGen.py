@@ -9,7 +9,7 @@ from datetime import datetime
 banks = []
 simulations = []
 timestep = 1
-simCount = 100
+simCount = 50
 capacityMultipler = 0.75
 shockMultiplier = 0.75
 budgetRatio = 0.75
@@ -18,8 +18,7 @@ assortThresh = 0.01
 numberOfNodes = 250
 powerLawAlpha = 2
 targetReplicates = 1
-imperfect = True
-
+imperfect = False
 
 def generateNetwork():
     ## use a networkx function to create a degree sequence that follows a power law
@@ -127,14 +126,14 @@ for netID in range(0, targetReplicates):
     ## 4
     for selfQuarantineCost in range (2, 3, 1):
         selfQuarantineCostMultiplier = (1.0 * selfQuarantineCost) / 2
-        for regulate in range(0, 2): # ON ALWAYS
+        for regulate in range(0, 2):
             if regulate == 0: regulate = False
             else: regulate = True
             for quarantine in range(0, 2):
                 if quarantine == 0: selfQuarantine = False
                 else: selfQuarantine = True
                 ## count from 10 to 75 in steps of 5
-                for shockSize in range(50, 600, 50):
+                for shockSize in range(25, 225, 25):
                     budget = budgetRatio * shockSize
                     ## wipe out the simulations list after each network
                     simulations = []

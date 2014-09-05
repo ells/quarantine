@@ -23,6 +23,7 @@ class Simulation:
         ## budget and multipliers
         self.budget = budget
         self.selfQuarantineCostMultiplier = selfQuarantineCostMultiplier
+        self.budgetRatio = (1.0 * self.budget) / self.shockSize
         ## imperfect knowledge
         self.smallBankMeanDegreeEstimate = 0
         self.estimatedShock = 0
@@ -31,7 +32,10 @@ class Simulation:
         self.smallBanks = []
         self.budgetSpent = 0
         ## file output
+
         self.outputFile = outputFile
+
+
 
 
     def shockBanks(self):
@@ -99,7 +103,8 @@ class Simulation:
         ## this effectively says : while(true) enter the timestep loop
         ## when the stop conditions are met (see sim.running() below) it reads: while(false) and exits the loop
         while self.running(timestep):
-            self.initImperfectKnowledge()
+
+            if self.budget > 1 and self.imperfect == True: self.initImperfectKnowledge()
             ## first we loop through all the banks
             for bankID in range(0, len(self.banks)):
                 ## set the bank in question based on the master banks list
@@ -107,7 +112,7 @@ class Simulation:
                 ## kill banks that failed at last timestep
                 bank.killBank()
                 ## if self.regulate is on, run global regulator function prior to status updates from propagation at last timestep
-                if self.regulate and self.imperfect == False: self.globalRegulator()
+                if self.regulate == True and self.imperfect == False: self.globalRegulator()
                 ## update new statuses, again, based on the last timestep's propagations
                 bank.updateStatus(timestep)
 
@@ -144,9 +149,9 @@ class Simulation:
         else: imperfect = "perfect"
 
 
-        budgetRatio = (1.0 * self.budget) / self.shockSize
 
-        outputString = str(timestep) + "\t" + str(imperfect) + "\t" + str(regulateState) + "\t" + str(budgetRatio) + "\t" + str(quarantineState) + "\t" + str(shockSize) + "\t" + str(self.initialShockCount) + "\t" + str(self.countDead()) + "\t" + str('{0:.4g}'.format(self.lossFraction)) + "\t" + str('{0:.4g}'.format(self.assortativity)) + "\t" + str(self.totalCapacity) + "\t" + str(self.capacityMultiplier) + "\t" + str(self.shockMultiplier) + "\t" + str(self.selfQuarantineCostMultiplier)
+
+        outputString = str(timestep) + "\t" + str(imperfect) + "\t" + str(regulateState) + "\t" + str(self.budgetRatio) + "\t" + str(quarantineState) + "\t" + str(shockSize) + "\t" + str(self.initialShockCount) + "\t" + str(self.countDead()) + "\t" + str('{0:.4g}'.format(self.lossFraction)) + "\t" + str('{0:.4g}'.format(self.assortativity)) + "\t" + str(self.totalCapacity) + "\t" + str(self.capacityMultiplier) + "\t" + str(self.shockMultiplier) + "\t" + str(self.selfQuarantineCostMultiplier)
         print outputString
         self.outputFile.write(outputString)
         self.outputFile.write("\n")
@@ -353,7 +358,7 @@ class Simulation:
 
     ## IMPERFECT REGULATOR
     def imperfectRegulation(self):
-        if self.budget <= 1:
+        if self.budget <= 2:
             self.disburseRemainingBudget()
             return
         ## we now have a prioritized list of tuples that contain [topBank, potentialRisk]
